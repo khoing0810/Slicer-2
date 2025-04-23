@@ -37,7 +37,7 @@ If expanding on this work is of interest, please feel free to contact us. We are
 
 ## Contact
 
-Questions regarding Slicer 2 can be directed to slicer@ornl.gov.
+Questions regarding ORNL Slicer 2 can be directed to slicer@ornl.gov.
 
 ## Share
 Need an easy way to share/connect to the repo? Use our QR code! A copy can be found in the docs folder of the repo.
