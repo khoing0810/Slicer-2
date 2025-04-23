@@ -29,7 +29,7 @@ This work has been sponsored by work supported by the U.S. Department of Energy,
 
 ## Contributors and Thanks
 
-This work has also benefitied from cooperative research agreements with numerous partners without which Slicer 2 would not have evolved to its current state. A special mention should also be made for the many interns that have contributed to the project.
+This work has also benefitied from cooperative research agreements with numerous partners without which ORNL Slicer 2 would not have evolved to its current state. A special mention should also be made for the many interns that have contributed to the project.
 
 ## Engagement
 
