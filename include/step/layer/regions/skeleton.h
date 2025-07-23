@@ -164,10 +164,27 @@ class Skeleton : public RegionBase {
     QSharedPointer<LineSegment> createSegment(const Point& start, const Point& end,
                                               const QSharedPointer<SettingsBase>& sb);
 
-    //! \brief Creates paths for the skeleton region.
-    //! \param line: polyline representing path
-    //! \return Polyline converted to path
+    /**
+     * @brief Creates a Skeleton path.
+     * @param line Polyline representing the path.
+     * @return Skeleton path.
+     */
     Path createPath(Polyline line) override;
+
+    /**
+     * @brief Creates a path with regional settings applied.
+     * @param line Polyline representing the path.
+     * @return Path with regional settings applied.
+     */
+    Path createRegionalPath(Polyline line);
+
+    /**
+     * @brief Creates a path with adaptive bead width.
+     * @param line Polyline representing the path.
+     * @return Path with adaptive bead width applied.
+     * @throws std::invalid_argument if adaptive step size is less than or equal to zero.
+     */
+    Path createAdaptivePath(Polyline line);
 
     //! \brief Filters adapted paths by clamping or removing segments whose bead widths are not within the
     //! allowable range.

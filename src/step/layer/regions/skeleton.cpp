@@ -823,6 +823,74 @@ QSharedPointer<LineSegment> Skeleton::createSegment(const Point& start, const Po
 }
 
 Path Skeleton::createPath(Polyline line) {
+    Path path;
+
+    if (m_sb->setting<bool>(Constants::ProfileSettings::Skeleton::kSkeletonAdapt)) {
+        path = createAdaptivePath(line);
+    }
+    else if (!m_settings_polygons.isEmpty()) {
+        path = createRegionalPath(line);
+    }
+    else {
+        for (uint i = 0, end = line.size() - 1; i < end; ++i) {
+            QSharedPointer<LineSegment> segment = createSegment(line[i], line[i + 1], m_sb);
+            path.append(segment);
+        }
+    }
+
+    return path;
+}
+
+Path Skeleton::createRegionalPath(Polyline line) {
+    Path path;
+
+    SettingsPolygon settings_polygon = m_settings_polygons.first();
+
+    QSharedPointer<SettingsBase> regional_sb = QSharedPointer<SettingsBase>::create(*m_sb);
+    regional_sb->populate(settings_polygon.getSettings());
+
+    for (size_t i = 0; i < line.size() - 1; ++i) {
+        Point start = line[i], end = line[i + 1];
+
+        QVector<Point> intersections = settings_polygon.clipLine(start, end);
+
+        QVector<Point> points = {start};
+        if (!intersections.isEmpty()) {
+            // Sort intersections based on their distance from the start point
+            std::sort(intersections.begin(), intersections.end(),
+                      [start](const Point& a, const Point& b) { return start.distance(a) < start.distance(b); });
+            points.append(intersections);
+        }
+        points.append(end);
+
+        bool settings_region = settings_polygon.inside(start, true);
+
+        for (int i = 0; i < points.size() - 1; ++i) {
+            QSharedPointer<LineSegment> segment;
+
+            if (settings_region) {
+                // If the previous segment was inside the polygon, apply the polygon's settings.
+                segment = createSegment(points[i], points[i + 1], regional_sb);
+            }
+            else {
+                // If the previous segment was outside the polygon, preserve the original settings.
+                segment = createSegment(points[i], points[i + 1], m_sb);
+            }
+            path.append(segment);
+
+            settings_region = !settings_region; // Toggle the flag for the next segment
+        }
+    }
+
+    return path;
+}
+
+Path Skeleton::createAdaptivePath(Polyline line) {
+    // Exit early if adaptive step size is less than or equal to zero
+    if (m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kSkeletonAdaptStepSize) <= 0) {
+        throw std::invalid_argument("Adaptive step size must be greater than zero.");
+    }
+
     const Distance& width = m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kBeadWidth);
     const Distance& height = m_sb->setting<Distance>(Constants::ProfileSettings::Layer::kLayerHeight);
     const Velocity& speed = m_sb->setting<Velocity>(Constants::ProfileSettings::Skeleton::kSpeed);
@@ -839,17 +907,7 @@ Path Skeleton::createPath(Polyline line) {
     for (uint i = 0, end = line.size() - 1; i < end; ++i) {
         QVector<QSharedPointer<LineSegment>> segments;
 
-        // If adaptive bead width is enabled, adapt the bead width for each segment.
-        // Otherwise, use the static bead width.
-        if (adapt_bead_width && adapt_step_size > 0) {
-            segments = adaptBeadWidth(line[i], line[i + 1]);
-        }
-        else {
-            QSharedPointer<LineSegment> segment = QSharedPointer<LineSegment>::create(line[i], line[i + 1]);
-            segment->getSb()->setSetting(Constants::SegmentSettings::kWidth, width);
-            segment->getSb()->setSetting(Constants::SegmentSettings::kSpeed, speed);
-            segments += segment;
-        }
+        segments = adaptBeadWidth(line[i], line[i + 1]);
 
         for (QSharedPointer<LineSegment>& segment : segments) {
             segment->getSb()->setSetting(Constants::SegmentSettings::kHeight, height);
