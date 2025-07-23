@@ -154,6 +154,16 @@ class Skeleton : public RegionBase {
     void optimize(int layerNumber, Point& current_location, QVector<Path>& innerMostClosedContour,
                   QVector<Path>& outerMostClosedContour, bool& shouldNextPathBeCCW) override;
 
+    /**
+     * @brief Creates a Skeleton segment.
+     * @param[in] start Start point of the segment.
+     * @param[in] end End point of the segment.
+     * @param[in] sb Settings base for the segment.
+     * @return A shared pointer to the created segment.
+     */
+    QSharedPointer<LineSegment> createSegment(const Point& start, const Point& end,
+                                              const QSharedPointer<SettingsBase>& sb);
+
     //! \brief Creates paths for the skeleton region.
     //! \param line: polyline representing path
     //! \return Polyline converted to path

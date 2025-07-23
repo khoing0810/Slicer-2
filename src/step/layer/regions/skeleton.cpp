@@ -801,6 +801,27 @@ QVector<QSharedPointer<LineSegment>> Skeleton::adaptBeadWidth(const Point& start
     return subsegments;
 }
 
+QSharedPointer<LineSegment> Skeleton::createSegment(const Point& start, const Point& end,
+                                                    const QSharedPointer<SettingsBase>& sb) {
+    QSharedPointer<LineSegment> segment = QSharedPointer<LineSegment>::create(start, end);
+
+    segment->getSb()->setSetting(Constants::SegmentSettings::kWidth,
+                                 sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kBeadWidth));
+    segment->getSb()->setSetting(Constants::SegmentSettings::kSpeed,
+                                 sb->setting<Velocity>(Constants::ProfileSettings::Skeleton::kSpeed));
+    segment->getSb()->setSetting(Constants::SegmentSettings::kHeight,
+                                 sb->setting<Distance>(Constants::ProfileSettings::Layer::kLayerHeight));
+    segment->getSb()->setSetting(Constants::SegmentSettings::kAccel,
+                                 sb->setting<Acceleration>(Constants::PrinterSettings::Acceleration::kSkeleton));
+    segment->getSb()->setSetting(Constants::SegmentSettings::kExtruderSpeed,
+                                 sb->setting<AngularVelocity>(Constants::ProfileSettings::Skeleton::kExtruderSpeed));
+    segment->getSb()->setSetting(Constants::SegmentSettings::kMaterialNumber,
+                                 sb->setting<int>(Constants::MaterialSettings::MultiMaterial::kPerimterNum));
+    segment->getSb()->setSetting(Constants::SegmentSettings::kRegionType, RegionType::kSkeleton);
+
+    return segment;
+}
+
 Path Skeleton::createPath(Polyline line) {
     const Distance& width = m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kBeadWidth);
     const Distance& height = m_sb->setting<Distance>(Constants::ProfileSettings::Layer::kLayerHeight);
