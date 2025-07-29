@@ -13,7 +13,7 @@ SettingsPolygon::SettingsPolygon(QVector<Polygon> geometry, QSharedPointer<Setti
     }
 }
 
-QVector<Point> SettingsPolygon::clipLine(Point start, Point end) {
+QVector<Point> SettingsPolygon::clipLine(Point start, Point end) const {
     ClipperLib2::PolyTree poly_tree;
     ClipperLib2::Paths paths;
 

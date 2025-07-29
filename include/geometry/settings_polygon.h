@@ -23,7 +23,7 @@ class SettingsPolygon : public PolygonList {
     //! \param start: the start of the line
     //! \param end: the end of the line
     //! \return a list of points were the line intersected the polygon
-    QVector<Point> clipLine(Point start, Point end);
+    QVector<Point> clipLine(Point start, Point end) const;
 
     //! \brief gets the settings base
     //! \return a pointer to the settings
