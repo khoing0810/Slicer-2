@@ -157,6 +157,12 @@ class PolygonList : public QVector<Polygon> {
     // Get the bounding box for all polygons in list list.
     QRect boundingRect() const;
 
+    /**
+     * @brief Returns the edges of the polygons in the list.
+     * @return QVector of Polyline representing the edges of the polygons.
+     */
+    QVector<Polyline> getEdges() const;
+
   private:
     /*!
      * recursive part of \ref Polygons::removeEmptyHoles and \ref

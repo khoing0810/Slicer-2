@@ -956,4 +956,14 @@ QRect PolygonList::boundingRect() const {
 
     return QRect(min, max);
 }
+
+QVector<Polyline> PolygonList::getEdges() const {
+    QVector<Polyline> edges;
+
+    for (const Polygon& poly : *this) {
+        edges += poly.getEdges();
+    }
+
+    return edges;
+}
 } // namespace ORNL
