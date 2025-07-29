@@ -1,8 +1,5 @@
 #include "geometry/settings_polygon.h"
 
-#include "cross_section/cross_section.h"
-#include "utilities/mathutils.h"
-
 namespace ORNL {
 SettingsPolygon::SettingsPolygon(QVector<Polygon> geometry, QSharedPointer<SettingsBase>& sb) {
     m_sb = sb;
@@ -43,4 +40,6 @@ QVector<Point> SettingsPolygon::clipLine(Point start, Point end) const {
 }
 
 QSharedPointer<SettingsBase> SettingsPolygon::getSettings() { return m_sb; }
+
+QSharedPointer<SettingsBase> SettingsPolygon::getSettings() const { return m_sb; }
 } // namespace ORNL

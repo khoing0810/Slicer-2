@@ -29,6 +29,12 @@ class SettingsPolygon : public PolygonList {
     //! \return a pointer to the settings
     QSharedPointer<SettingsBase> getSettings();
 
+    /**
+     * @brief Gets the settings base for this polygon.
+     * @return A shared pointer to the settings base.
+     */
+    QSharedPointer<SettingsBase> getSettings() const;
+
   private:
     //! \brief the settings
     QSharedPointer<SettingsBase> m_sb;
