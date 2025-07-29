@@ -841,44 +841,52 @@ Path Skeleton::createPath(Polyline line) {
     return path;
 }
 
-Path Skeleton::createRegionalPath(Polyline line) {
+Path Skeleton::createRegionalPath(const Polyline& line) {
     Path path;
 
-    SettingsPolygon settings_polygon = m_settings_polygons.first();
+    // Iterate through each segment of the polyline
+    for (size_t i = 0; i + 1 < line.size(); ++i) {
+        const Point start = line[i];
+        const Point end = line[i + 1];
 
-    QSharedPointer<SettingsBase> regional_sb = QSharedPointer<SettingsBase>::create(*m_sb);
-    regional_sb->populate(settings_polygon.getSettings());
-
-    for (size_t i = 0; i < line.size() - 1; ++i) {
-        Point start = line[i], end = line[i + 1];
-
-        QVector<Point> intersections = settings_polygon.clipLine(start, end);
-
-        QVector<Point> points = {start};
-        if (!intersections.isEmpty()) {
-            // Sort intersections based on their distance from the start point
-            std::sort(intersections.begin(), intersections.end(),
-                      [start](const Point& a, const Point& b) { return start.distance(a) < start.distance(b); });
-            points.append(intersections);
+        // Clip the segment against the settings polygons
+        QVector<Point> cuts;
+        for (const SettingsPolygon& polygon : m_settings_polygons) {
+            cuts += polygon.clipLine(start, end);
         }
-        points.append(end);
 
-        bool settings_region = settings_polygon.inside(start, true);
+        // If no cuts, create a segment with the default settings
+        if (cuts.isEmpty()) {
+            path.append(createSegment(start, end, m_sb));
+            continue;
+        }
 
-        for (int i = 0; i < points.size() - 1; ++i) {
-            QSharedPointer<LineSegment> segment;
+        // Sort cuts based on their distance from the start point
+        std::sort(cuts.begin(), cuts.end(),
+                  [start](const Point& a, const Point& b) { return start.distance(a) < start.distance(b); });
 
-            if (settings_region) {
-                // If the previous segment was inside the polygon, apply the polygon's settings.
-                segment = createSegment(points[i], points[i + 1], regional_sb);
+        // Create an ordered list of points including start, cuts, and end
+        QVector<Point> points;
+        points << start << cuts << end;
+
+        // Assemble subsegments from the points and apply regional settings
+        for (size_t j = 0; j + 1 < points.size(); ++j) {
+            const Point p0 = points[j];
+            const Point p1 = points[j + 1];
+
+            // Compute the midpoint of the subsegment to determine which regional settings to apply
+            const Point midpoint = (p0 + p1) * 0.5;
+
+            // Assign the subsegment settings based on the midpoint's position relative to the settings polygons
+            QSharedPointer<SettingsBase> segment_sb = m_sb;
+            for (const SettingsPolygon& polygon : m_settings_polygons) {
+                if (polygon.inside(midpoint)) {
+                    segment_sb = polygon.getSettings();
+                    break;
+                }
             }
-            else {
-                // If the previous segment was outside the polygon, preserve the original settings.
-                segment = createSegment(points[i], points[i + 1], m_sb);
-            }
-            path.append(segment);
 
-            settings_region = !settings_region; // Toggle the flag for the next segment
+            path.append(createSegment(p0, p1, segment_sb));
         }
     }
 
@@ -888,7 +896,8 @@ Path Skeleton::createRegionalPath(Polyline line) {
 Path Skeleton::createAdaptivePath(Polyline line) {
     // Exit early if adaptive step size is less than or equal to zero
     if (m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kSkeletonAdaptStepSize) <= 0) {
-        throw std::invalid_argument("Adaptive step size must be greater than zero.");
+        qWarning() << "Skeleton adaptive step size must be greater than zero.";
+        return Path();
     }
 
     const Distance& width = m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kBeadWidth);

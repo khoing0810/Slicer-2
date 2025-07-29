@@ -166,21 +166,26 @@ class Skeleton : public RegionBase {
 
     /**
      * @brief Creates a Skeleton path.
-     * @param line Polyline representing the path.
+     * @param[in] line Polyline representing the path.
      * @return Skeleton path.
      */
     Path createPath(Polyline line) override;
 
     /**
      * @brief Creates a path with regional settings applied.
-     * @param line Polyline representing the path.
+     * @param[in] line Polyline representing the path.
      * @return Path with regional settings applied.
+     * @warning Does not handle cases where multiple settings regions overlap and instead
+     * applies the first matching region's settings.
+     * @warning Cannot be used with adaptive bead width.
+     * @todo Handle cases where multiple settings regions overlap.
+     * @todo Handle adaptive bead width.
      */
-    Path createRegionalPath(Polyline line);
+    Path createRegionalPath(const Polyline& line);
 
     /**
      * @brief Creates a path with adaptive bead width.
-     * @param line Polyline representing the path.
+     * @param[in] line Polyline representing the path.
      * @return Path with adaptive bead width applied.
      * @throws std::invalid_argument if adaptive step size is less than or equal to zero.
      */
