@@ -73,7 +73,7 @@ class PolygonList : public QVector<Polygon> {
      * Returns false if outside, true if inside; if the point lies exactly
      * on the border, will return \p border_result.
      */
-    bool inside(Point p, bool border_result = false);
+    bool inside(Point p, bool border_result = false) const;
 
     /*!
      * \brief Implements monotone chain convex hull algorithm

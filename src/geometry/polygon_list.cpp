@@ -74,7 +74,7 @@ PolygonList PolygonList::offset(Distance distance, Distance real_offset, Clipper
     return polygons;
 }
 
-bool PolygonList::inside(Point p, bool border_result) {
+bool PolygonList::inside(Point p, bool border_result) const {
     int poly_count_inside = 0;
     for (ClipperLib2::Path poly : (*this)()) {
         const int is_inside_this_poly = ClipperLib2::PointInPolygon(p.toIntPoint(), poly);
