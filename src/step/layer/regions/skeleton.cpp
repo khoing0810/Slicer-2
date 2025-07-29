@@ -129,17 +129,11 @@ void Skeleton::computeSegmentVoronoi() {
     };
 
     //! Gather input geometry
-    QVector<Polyline> segments;
-    for (Polygon& poly : m_geometry) {
-        for (uint i = 0, max = poly.size() - 1; i < max; ++i) {
-            segments += Polyline({poly[i], poly[i + 1]});
-        }
-        segments += Polyline({poly.last(), poly.first()});
-    }
+    QVector<Polyline> bounding_edges = m_geometry.getEdges();
 
     //! Construct Voronoi Diagram
     voronoi_diagram<double> vd;
-    construct_voronoi(segments.begin(), segments.end(), &vd);
+    construct_voronoi(bounding_edges.begin(), bounding_edges.end(), &vd);
 
     //! Gather skeleton segments
     for (voronoi_diagram<double>::const_cell_iterator it = vd.cells().begin(); it != vd.cells().end(); ++it) {
@@ -154,8 +148,8 @@ void Skeleton::computeSegmentVoronoi() {
                         //! Ensures skeleton segments are only generated once since voronoi diagram implements twin
                         //! edges
                         if (edge->cell()->source_index() < edge->twin()->cell()->source_index()) {
-                            const Polyline& source1 = segments[edge->cell()->source_index()];
-                            const Polyline& source2 = segments[edge->twin()->cell()->source_index()];
+                            const Polyline& source1 = bounding_edges[edge->cell()->source_index()];
+                            const Polyline& source2 = bounding_edges[edge->twin()->cell()->source_index()];
 
                             //! Ensures skeleton segments run parallel to the border geometry
                             if (source1.first() != source2.first() && source1.first() != source2.last() &&
@@ -187,7 +181,7 @@ void Skeleton::computeSegmentVoronoi() {
     QVector<Polyline>::iterator segment_iter = m_skeleton_geometry.begin(),
                                 segment_iter_end = m_skeleton_geometry.end();
     while (segment_iter != segment_iter_end) {
-        if (segments.contains(*segment_iter) || segments.contains(segment_iter->reverse())) {
+        if (bounding_edges.contains(*segment_iter) || bounding_edges.contains(segment_iter->reverse())) {
             segment_iter = m_skeleton_geometry.erase(segment_iter);
         }
         else {
@@ -706,57 +700,49 @@ void Skeleton::inspectSkeletonGraph() {
 
 QVector<QSharedPointer<LineSegment>> Skeleton::adaptBeadWidth(const Point& start, const Point& end) {
     // Retrieve profile settings
-    const Distance& reference_width = m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kBeadWidth);
-    const Velocity& reference_speed = m_sb->setting<Velocity>(Constants::ProfileSettings::Skeleton::kSpeed);
-    const Distance& discretization_step =
-        m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kSkeletonAdaptStepSize);
-
-    // Compute factor for speed calculation based on inverse proportionality
-    double speed_factor = reference_speed() * reference_width();
+    const auto& ref_width = m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kBeadWidth);
+    const auto& ref_speed = m_sb->setting<Velocity>(Constants::ProfileSettings::Skeleton::kSpeed);
+    double speed_factor = ref_speed() * ref_width(); // Inverse-proportional speed factor
+    const auto& step = m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kSkeletonAdaptStepSize);
 
     // Define discretization variables
     Distance segment_length = start.distance(end);
-    int num_subsegments = std::max(
-        1, static_cast<int>(segment_length() /
-                            discretization_step())); // Ensure num_subsegments is at least 1 to avoid division by zero
-    double step_x = (end.x() - start.x()) / num_subsegments;
-    double step_y = (end.y() - start.y()) / num_subsegments;
+    int steps = std::max(1, static_cast<int>(segment_length() /
+                                             step())); // Ensure num_subsegments is at least 1 to avoid division by zero
+    double dx = (end.x() - start.x()) / steps;
+    double dy = (end.y() - start.y()) / steps;
 
     // Initialize vector to store nodes (location, circumradius)
     QVector<QPair<Point, Distance>> nodes;
-    nodes.reserve(num_subsegments + 1);
+    nodes.reserve(steps + 1);
 
     // Discretize segment into set of nodes
-    for (int i = 0; i <= num_subsegments; ++i) {
-        Point current_node(start.x() + i * step_x, start.y() + i * step_y, 0);
+    for (int i = 0; i <= steps; ++i) {
+        Point p(start.x() + i * dx, start.y() + i * dy, 0);
 
-        // Calculate circumradius (minimum distance to boundary)
+        // Find the closest point on the segment and its distance to the point p
         Distance circumradius = std::numeric_limits<double>::max();
-        for (Polygon& polygon : m_geometry) {
-            const Polyline& boundary = polygon.toPolyline();
-
-            for (int j = 0; j < boundary.size() - 1; ++j) {
-                const Distance& distance =
-                    std::get<0>(MathUtils::findClosestPointOnSegment(boundary[j], boundary[j + 1], current_node));
-                circumradius = std::min(circumradius, distance);
-            }
+        for (const Polyline& edge : m_geometry.getEdges()) {
+            circumradius =
+                std::min(circumradius,
+                         Distance(std::get<0>(MathUtils::findClosestPointOnSegment(edge.first(), edge.last(), p))));
         }
 
         // Append node with bead width to discretized nodes
-        nodes.append(qMakePair(current_node, circumradius * 2.0)); // Bead width is twice the circumradius
+        nodes.append(qMakePair(p, circumradius * 2.0)); // Bead width is twice the circumradius
     }
     nodes.last().first = end; // Ensure last node matches end point
 
     // Initialize vector to store subsegments with adapted bead widths
     QVector<QSharedPointer<LineSegment>> subsegments;
-    subsegments.reserve(num_subsegments);
+    subsegments.reserve(steps);
 
     // Define consolidation tolerance based on reference bead width
-    Distance consolidation_tolerance = reference_width / 100.0; // 1% of reference bead width
+    Distance consolidation_tolerance = ref_width / 100.0; // 1% of reference bead width
 
     // Combine consecutive nodes into larger segments based on consolidation tolerance
     int subsegment_start_index = 0;
-    for (int i = 1; i <= num_subsegments; ++i) {
+    for (int i = 1; i <= steps; ++i) {
         const Distance& start_width = nodes[subsegment_start_index].second;
         const Distance& end_width = nodes[i].second;
 
@@ -764,10 +750,9 @@ QVector<QSharedPointer<LineSegment>> Skeleton::adaptBeadWidth(const Point& start
         if (std::abs(end_width() - start_width()) > consolidation_tolerance()) {
             // Adjust bead width and speed
             Distance adjusted_width = std::min(start_width, end_width);
-            adjusted_width = adjusted_width == 0 ? reference_width : adjusted_width;
-            Velocity adjusted_speed =
-                std::max(speed_factor / adjusted_width(),
-                         reference_speed() / 100.0); // Clamp adjusted speed to 1% of reference speed
+            adjusted_width = adjusted_width == 0 ? ref_width : adjusted_width;
+            Velocity adjusted_speed = std::max(speed_factor / adjusted_width(),
+                                               ref_speed() / 100.0); // Clamp adjusted speed to 1% of reference speed
 
             // Create and store the subsegment
             auto subsegment = QSharedPointer<LineSegment>::create(nodes[subsegment_start_index].first, nodes[i].first);
@@ -781,15 +766,15 @@ QVector<QSharedPointer<LineSegment>> Skeleton::adaptBeadWidth(const Point& start
     }
 
     // Handle the last subsegment if it hasn't been added yet
-    if (subsegment_start_index < num_subsegments) {
+    if (subsegment_start_index < steps) {
         const Distance& start_width = nodes[subsegment_start_index].second;
         const Distance& end_width = nodes.last().second;
 
         // Adjust bead width and speed
         Distance adjusted_width = std::min(start_width, end_width);
-        adjusted_width = (adjusted_width == 0) ? reference_width : adjusted_width;
+        adjusted_width = (adjusted_width == 0) ? ref_width : adjusted_width;
         Velocity adjusted_speed = std::max(speed_factor / adjusted_width(),
-                                           reference_speed() / 100.0); // Clamp adjusted speed to 1% of reference speed
+                                           ref_speed() / 100.0); // Clamp adjusted speed to 1% of reference speed
 
         // Create and store the last subsegment
         auto subsegment = QSharedPointer<LineSegment>::create(nodes[subsegment_start_index].first, nodes.last().first);
@@ -900,16 +885,11 @@ Path Skeleton::createAdaptivePath(Polyline line) {
         return Path();
     }
 
-    const Distance& width = m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kBeadWidth);
     const Distance& height = m_sb->setting<Distance>(Constants::ProfileSettings::Layer::kLayerHeight);
-    const Velocity& speed = m_sb->setting<Velocity>(Constants::ProfileSettings::Skeleton::kSpeed);
     const Acceleration& acceleration = m_sb->setting<Acceleration>(Constants::PrinterSettings::Acceleration::kSkeleton);
     const AngularVelocity& extruder_speed =
         m_sb->setting<AngularVelocity>(Constants::ProfileSettings::Skeleton::kExtruderSpeed);
     const int& material_number = m_sb->setting<int>(Constants::MaterialSettings::MultiMaterial::kPerimterNum);
-    const bool& adapt_bead_width = m_sb->setting<bool>(Constants::ProfileSettings::Skeleton::kSkeletonAdapt);
-    const Distance& adapt_step_size =
-        m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kSkeletonAdaptStepSize);
 
     Path path;
 
