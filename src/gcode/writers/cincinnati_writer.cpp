@@ -1,7 +1,6 @@
 #include "gcode/writers/cincinnati_writer.h"
 
 #include "utilities/enums.h"
-#include "utilities/mathutils.h"
 
 #include <QStringBuilder>
 
@@ -55,14 +54,14 @@ QString CincinnatiWriter::writeInitialSetup(Distance minimum_x, Distance minimum
         if (m_sb->setting<int>(Constants::PrinterSettings::Dimensions::kLayerChangeAxis) !=
             static_cast<int>(LayerChange::kW_only)) {
             // can't output in Z if there is no Z-axis
-            if (m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kForceG1))
-            {
-                rv += m_G1 % m_f % QString::number(m_sb->setting< Velocity >(Constants::PrinterSettings::MachineSpeed::kZSpeed).to(m_meta.m_velocity_unit))
-                    % " Z0" % commentSpaceLine("LIFT Z FOR SAFETY");
-                setFeedrate(m_sb->setting< Velocity >(Constants::PrinterSettings::MachineSpeed::kZSpeed));
+            if (m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kForceG1)) {
+                rv += m_G1 % m_f %
+                      QString::number(m_sb->setting<Velocity>(Constants::PrinterSettings::MachineSpeed::kZSpeed)
+                                          .to(m_meta.m_velocity_unit)) %
+                      " Z0" % commentSpaceLine("LIFT Z FOR SAFETY");
+                setFeedrate(m_sb->setting<Velocity>(Constants::PrinterSettings::MachineSpeed::kZSpeed));
             }
-            else
-            {
+            else {
                 rv += "G0 Z0 " % commentLine("LIFT Z FOR SAFETY");
             }
             m_current_z = 0;
@@ -200,14 +199,15 @@ QString CincinnatiWriter::writeBeforeLayer(float new_min_z, QSharedPointer<Setti
             // move table down by layer height, if possible
             if (m_current_w - layer_height > m_sb->setting<Distance>(Constants::PrinterSettings::Dimensions::kWMin)) {
                 m_current_w -= layer_height;
-                if (m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kForceG1))
-                {
-                    rv += m_G1 % m_f % QString::number(m_sb->setting< Velocity >(Constants::PrinterSettings::MachineSpeed::kWTableSpeed).to(m_meta.m_velocity_unit))
-                          % m_w % QString::number(m_current_w.to(m_meta.m_distance_unit), 'f', 4) %
-                          commentSpaceLine("MOVE W - LAYER CHANGE");
+                if (m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kForceG1)) {
+                    rv +=
+                        m_G1 % m_f %
+                        QString::number(m_sb->setting<Velocity>(Constants::PrinterSettings::MachineSpeed::kWTableSpeed)
+                                            .to(m_meta.m_velocity_unit)) %
+                        m_w % QString::number(m_current_w.to(m_meta.m_distance_unit), 'f', 4) %
+                        commentSpaceLine("MOVE W - LAYER CHANGE");
                 }
-                else
-                {
+                else {
                     rv += m_G0 % m_w % QString::number(m_current_w.to(m_meta.m_distance_unit), 'f', 4) %
                           commentSpaceLine("MOVE W - LAYER CHANGE");
                 }
@@ -216,14 +216,15 @@ QString CincinnatiWriter::writeBeforeLayer(float new_min_z, QSharedPointer<Setti
             // if table is above min, but can not move down the entire layer height, move to min
             else if (m_current_w > m_sb->setting<Distance>(Constants::PrinterSettings::Dimensions::kWMin)) {
                 m_current_w = m_sb->setting<Distance>(Constants::PrinterSettings::Dimensions::kWMin);
-                if (m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kForceG1))
-                {
-                    rv += m_G1 % m_f % QString::number(m_sb->setting< Velocity >(Constants::PrinterSettings::MachineSpeed::kWTableSpeed).to(m_meta.m_velocity_unit))
-                    % m_w % QString::number(m_current_w.to(m_meta.m_distance_unit), 'f', 4) %
+                if (m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kForceG1)) {
+                    rv +=
+                        m_G1 % m_f %
+                        QString::number(m_sb->setting<Velocity>(Constants::PrinterSettings::MachineSpeed::kWTableSpeed)
+                                            .to(m_meta.m_velocity_unit)) %
+                        m_w % QString::number(m_current_w.to(m_meta.m_distance_unit), 'f', 4) %
                         commentSpaceLine("MOVE W TO BOTTOM");
                 }
-                else
-                {
+                else {
                     rv += m_G0 % m_w % QString::number(m_current_w.to(m_meta.m_distance_unit), 'f', 4) %
                           commentSpaceLine("MOVE W TO BOTTOM");
                 }
@@ -389,23 +390,22 @@ QString CincinnatiWriter::writeTravel(Point start_location, Point target_locatio
     if (travel_lift_required && !m_first_travel &&
         (lType == TravelLiftType::kBoth || lType == TravelLiftType::kLiftUpOnly)) {
         Point lift_destination = new_start_location + travel_lift; // lift destination is above start location
-        if (m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kForceG1))
-        {
+        if (m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kForceG1)) {
             if (m_sb->setting<int>(Constants::PrinterSettings::Dimensions::kLayerChangeAxis) ==
-                static_cast<int>(LayerChange::kW_only))
-            {
-                rv += m_G1 % m_f % QString::number(m_sb->setting< Velocity >(Constants::PrinterSettings::MachineSpeed::kWTableSpeed).to(m_meta.m_velocity_unit))
-                      % writeCoordinates(lift_destination);
+                static_cast<int>(LayerChange::kW_only)) {
+                rv += m_G1 % m_f %
+                      QString::number(m_sb->setting<Velocity>(Constants::PrinterSettings::MachineSpeed::kWTableSpeed)
+                                          .to(m_meta.m_velocity_unit)) %
+                      writeCoordinates(lift_destination);
             }
-            else
-            {
-                rv += m_G1 % m_f % QString::number(m_sb->setting< Velocity >(Constants::PrinterSettings::MachineSpeed::kZSpeed).to(m_meta.m_velocity_unit))
-                % writeCoordinates(lift_destination);
+            else {
+                rv += m_G1 % m_f %
+                      QString::number(m_sb->setting<Velocity>(Constants::PrinterSettings::MachineSpeed::kZSpeed)
+                                          .to(m_meta.m_velocity_unit)) %
+                      writeCoordinates(lift_destination);
             }
-
         }
-        else
-        {
+        else {
             rv += m_G0 % writeCoordinates(lift_destination);
         }
 
@@ -428,13 +428,13 @@ QString CincinnatiWriter::writeTravel(Point start_location, Point target_locatio
         travel_destination = travel_destination + travel_lift; // travel destination is above the target point
     }
 
-    if (m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kForceG1))
-    {
-        rv += m_G1 % m_f % QString::number(m_sb->setting< Velocity >(Constants::ProfileSettings::Travel::kSpeed).to(m_meta.m_velocity_unit))
-              % writeCoordinates(travel_destination) % commentSpaceLine("TRAVEL");
+    if (m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kForceG1)) {
+        rv += m_G1 % m_f %
+              QString::number(
+                  m_sb->setting<Velocity>(Constants::ProfileSettings::Travel::kSpeed).to(m_meta.m_velocity_unit)) %
+              writeCoordinates(travel_destination) % commentSpaceLine("TRAVEL");
     }
-    else
-    {
+    else {
         rv += m_G0 % writeCoordinates(travel_destination) % commentSpaceLine("TRAVEL");
     }
 
@@ -445,24 +445,23 @@ QString CincinnatiWriter::writeTravel(Point start_location, Point target_locatio
     }
 
     // write the travel lower (undo the lift)
-    if (travel_lift_required && (lType == TravelLiftType::kBoth || lType == TravelLiftType::kLiftLowerOnly))
-    {
-        if (m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kForceG1))
-        {
+    if (travel_lift_required && (lType == TravelLiftType::kBoth || lType == TravelLiftType::kLiftLowerOnly)) {
+        if (m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kForceG1)) {
             if (m_sb->setting<int>(Constants::PrinterSettings::Dimensions::kLayerChangeAxis) ==
-                static_cast<int>(LayerChange::kW_only))
-            {
-                rv += m_G1 % m_f % QString::number(m_sb->setting< Velocity >(Constants::PrinterSettings::MachineSpeed::kWTableSpeed).to(m_meta.m_velocity_unit))
-                % writeCoordinates(target_location);
+                static_cast<int>(LayerChange::kW_only)) {
+                rv += m_G1 % m_f %
+                      QString::number(m_sb->setting<Velocity>(Constants::PrinterSettings::MachineSpeed::kWTableSpeed)
+                                          .to(m_meta.m_velocity_unit)) %
+                      writeCoordinates(target_location);
             }
-            else
-            {
-                rv += m_G1 % m_f % QString::number(m_sb->setting< Velocity >(Constants::PrinterSettings::MachineSpeed::kZSpeed).to(m_meta.m_velocity_unit))
-                % writeCoordinates(target_location);
+            else {
+                rv += m_G1 % m_f %
+                      QString::number(m_sb->setting<Velocity>(Constants::PrinterSettings::MachineSpeed::kZSpeed)
+                                          .to(m_meta.m_velocity_unit)) %
+                      writeCoordinates(target_location);
             }
         }
-        else
-        {
+        else {
             rv += m_G0 % writeCoordinates(target_location);
         }
 
@@ -477,36 +476,35 @@ QString CincinnatiWriter::writeTravel(Point start_location, Point target_locatio
     }
 
     if (w_active_first_travel && m_sb->setting<int>(Constants::PrinterSettings::Dimensions::kLayerChangeAxis) ==
-                                     static_cast<int>(LayerChange::kW_only))
-    {
+                                     static_cast<int>(LayerChange::kW_only)) {
         // If using W only, a first travel to position the Z is required
-        if (m_sb->setting<int>(Constants::PrinterSettings::Dimensions::kUseVariableForZ))
-        {
-            if (m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kForceG1))
-            {
-                rv += m_G1 % m_f % QString::number(m_sb->setting< Velocity >(Constants::PrinterSettings::MachineSpeed::kZSpeed).to(m_meta.m_velocity_unit))
-                      % m_z % "[#200]" % commentSpaceLine("TRAVEL SET PRINTING Z HEIGHT");
+        if (m_sb->setting<int>(Constants::PrinterSettings::Dimensions::kUseVariableForZ)) {
+            if (m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kForceG1)) {
+                rv += m_G1 % m_f %
+                      QString::number(m_sb->setting<Velocity>(Constants::PrinterSettings::MachineSpeed::kZSpeed)
+                                          .to(m_meta.m_velocity_unit)) %
+                      m_z % "[#200]" % commentSpaceLine("TRAVEL SET PRINTING Z HEIGHT");
             }
-            else
-            {
+            else {
                 rv += m_G0 % m_z % "[#200]" % commentSpaceLine("TRAVEL SET PRINTING Z HEIGHT");
             }
         }
-        else
-        {
-            if (m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kForceG1))
-            {
-                rv += m_G1 % m_f % QString::number(m_sb->setting< Velocity >(Constants::PrinterSettings::MachineSpeed::kZSpeed).to(m_meta.m_velocity_unit))
-                      % m_z %
+        else {
+            if (m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kForceG1)) {
+                rv += m_G1 % m_f %
+                      QString::number(m_sb->setting<Velocity>(Constants::PrinterSettings::MachineSpeed::kZSpeed)
+                                          .to(m_meta.m_velocity_unit)) %
+                      m_z %
                       QString::number(m_sb->setting<Distance>(Constants::PrinterSettings::Dimensions::kZOffset)
-                                          .to(m_meta.m_distance_unit), 'f', 4) %
+                                          .to(m_meta.m_distance_unit),
+                                      'f', 4) %
                       commentSpaceLine("TRAVEL SET PRINTING Z HEIGHT");
             }
-            else
-            {
+            else {
                 rv += m_G0 % m_z %
                       QString::number(m_sb->setting<Distance>(Constants::PrinterSettings::Dimensions::kZOffset)
-                                          .to(m_meta.m_distance_unit), 'f', 4) %
+                                          .to(m_meta.m_distance_unit),
+                                      'f', 4) %
                       commentSpaceLine("TRAVEL SET PRINTING Z HEIGHT");
             }
         }
@@ -515,36 +513,35 @@ QString CincinnatiWriter::writeTravel(Point start_location, Point target_locatio
     else if (w_active_first_travel &&
              m_sb->setting<int>(Constants::PrinterSettings::Dimensions::kLayerChangeAxis) ==
                  static_cast<int>(LayerChange::kBoth_Z_and_W) &&
-             m_spiral_layer)
-    {
+             m_spiral_layer) {
         // If using ZW and Spiralize, a first travel to position the Z is required
-        if (m_sb->setting<int>(Constants::PrinterSettings::Dimensions::kUseVariableForZ))
-        {
-            if (m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kForceG1))
-            {
-                rv += m_G1 % m_f % QString::number(m_sb->setting< Velocity >(Constants::PrinterSettings::MachineSpeed::kZSpeed).to(m_meta.m_velocity_unit))
-                      % m_z % "[#200]" % commentSpaceLine("TRAVEL SET PRINTING Z HEIGHT");
+        if (m_sb->setting<int>(Constants::PrinterSettings::Dimensions::kUseVariableForZ)) {
+            if (m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kForceG1)) {
+                rv += m_G1 % m_f %
+                      QString::number(m_sb->setting<Velocity>(Constants::PrinterSettings::MachineSpeed::kZSpeed)
+                                          .to(m_meta.m_velocity_unit)) %
+                      m_z % "[#200]" % commentSpaceLine("TRAVEL SET PRINTING Z HEIGHT");
             }
-            else
-            {
+            else {
                 rv += m_G0 % m_z % "[#200]" % commentSpaceLine("TRAVEL SET PRINTING Z HEIGHT");
             }
         }
-        else
-        {
-            if (m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kForceG1))
-            {
-                rv += m_G1 % m_f % QString::number(m_sb->setting< Velocity >(Constants::PrinterSettings::MachineSpeed::kZSpeed).to(m_meta.m_velocity_unit))
-                      % m_z %
+        else {
+            if (m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kForceG1)) {
+                rv += m_G1 % m_f %
+                      QString::number(m_sb->setting<Velocity>(Constants::PrinterSettings::MachineSpeed::kZSpeed)
+                                          .to(m_meta.m_velocity_unit)) %
+                      m_z %
                       QString::number(m_sb->setting<Distance>(Constants::PrinterSettings::Dimensions::kZOffset)
-                                          .to(m_meta.m_distance_unit), 'f', 4) %
+                                          .to(m_meta.m_distance_unit),
+                                      'f', 4) %
                       commentSpaceLine("TRAVEL SET PRINTING Z HEIGHT");
             }
-            else
-            {
+            else {
                 rv += m_G0 % m_z %
                       QString::number(m_sb->setting<Distance>(Constants::PrinterSettings::Dimensions::kZOffset)
-                                          .to(m_meta.m_distance_unit), 'f', 4) %
+                                          .to(m_meta.m_distance_unit),
+                                      'f', 4) %
                       commentSpaceLine("TRAVEL SET PRINTING Z HEIGHT");
             }
         }
