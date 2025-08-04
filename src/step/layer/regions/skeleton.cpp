@@ -863,10 +863,11 @@ Path Skeleton::createRegionalPath(const Polyline& line) {
             const Point midpoint = (p0 + p1) * 0.5;
 
             // Assign the subsegment settings based on the midpoint's position relative to the settings polygons
-            QSharedPointer<SettingsBase> segment_sb = m_sb;
+            QSharedPointer<SettingsBase> segment_sb = QSharedPointer<SettingsBase>::create(*m_sb);
+
             for (const SettingsPolygon& polygon : m_settings_polygons) {
                 if (polygon.inside(midpoint)) {
-                    segment_sb = polygon.getSettings();
+                    segment_sb->populate(polygon.getSettings());
                     break;
                 }
             }
