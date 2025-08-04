@@ -698,7 +698,6 @@ const QString Constants::ProfileSettings::SpecialModes::kOversizeDistance = "ove
 const QString Constants::ProfileSettings::SpecialModes::kEnableWidthHeight = "enable_width_height";
 
 // Optimizations
-const QString Constants::ProfileSettings::Optimizations::kEnableGPU = "enable_gpu_acceleration";
 const QString Constants::ProfileSettings::Optimizations::kIslandOrder = "island_order_optimization";
 const QString Constants::ProfileSettings::Optimizations::kPathOrder = "path_order_optimization";
 const QString Constants::ProfileSettings::Optimizations::kCustomIslandXLocation = "custom_island_order_x_location";

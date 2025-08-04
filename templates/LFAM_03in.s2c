@@ -275,7 +275,6 @@
             "oversize_distance": 0,
             "enable_width_height": false,
             "enable_inside_out_printing": false,
-            "enable_gpu_acceleration": true,
             "island_order_optimization": 0,
             "path_order_optimization": 0,
             "custom_path_order_x_location": 0,

@@ -776,7 +776,6 @@ class Constants {
 
         class Optimizations {
           public:
-            static const QString kEnableGPU;
             static const QString kIslandOrder;
             static const QString kPathOrder;
             static const QString kCustomIslandXLocation;
