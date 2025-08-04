@@ -840,12 +840,6 @@ Path Skeleton::createRegionalPath(const Polyline& line) {
             cuts += polygon.clipLine(start, end);
         }
 
-        // If no cuts, create a segment with the default settings
-        if (cuts.isEmpty()) {
-            path.append(createSegment(start, end, m_sb));
-            continue;
-        }
-
         // Sort cuts based on their distance from the start point
         std::sort(cuts.begin(), cuts.end(),
                   [start](const Point& a, const Point& b) { return start.distance(a) < start.distance(b); });
