@@ -233,16 +233,19 @@ bool pointsAreClose(Point pt1, Point pt2, Distance distSqrd) { return std::pow(p
 
 uint32_t cantorPair(uint32_t a, uint32_t b) { return (a + b) * (a + b + 1) / 2 + a; }
 
-std::tuple<float, Point> findClosestPointOnSegment(Point a, Point b, Point p) {
+std::tuple<double, Point> findClosestPointOnSegment(Point a, Point b, Point p) {
     Point closest;
 
-    float t = (b - a).dot(p - a) / (b - a).dot(b - a);
-    if (t < 0)
+    double t = (b - a).dot(p - a) / (b - a).dot(b - a);
+    if (t < 0) {
         closest = a;
-    else if (t > 1)
+    }
+    else if (t > 1) {
         closest = b;
-    else
+    }
+    else {
         closest = a * (1 - t) + b * t;
+    }
 
     return std::make_tuple(p.distance(closest)(), closest);
 }

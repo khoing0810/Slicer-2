@@ -133,7 +133,14 @@ bool pointsAreClose(Point pt1, Point pt2, Distance distSqrd);
  */
 uint32_t cantorPair(uint32_t a, uint32_t b);
 
-std::tuple<float, Point> findClosestPointOnSegment(Point a, Point b, Point p);
+/**
+ * @brief Finds the closest point on a segment to a point
+ * @param[in] a Start point of the segment
+ * @param[in] b End point of the segment
+ * @param[in] p Point to find the closest point to
+ * @return A tuple containing the distance to the closest point and the closest point itself
+ */
+std::tuple<double, Point> findClosestPointOnSegment(Point a, Point b, Point p);
 
 /*!
  * \brief chamferCorner
