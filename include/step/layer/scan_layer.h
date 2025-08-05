@@ -1,7 +1,5 @@
-#ifndef SCAN_H
-#define SCAN_H
+#pragma once
 
-// Local
 #include "geometry/polygon_list.h"
 #include "step/step.h"
 
@@ -59,5 +57,3 @@ class ScanLayer : public Step {
     bool m_first_connect;
 };
 } // namespace ORNL
-
-#endif // SCAN_H
