@@ -108,7 +108,7 @@ QString GCodeLoader::additionalExportComments() {
     travelTypes = travelTypes % closingDelim % "\n";
     travelColors = travelColors % closingDelim % "\n";
 
-    if (m_selected_meta == GcodeMetaList::TormachMeta) //Tormach can't handle parsing the travel types and colors
+    if (m_selected_meta == GcodeMetaList::TormachMeta) // Tormach can't handle parsing the travel types and colors
     {
         return partMinTranslation;
     }
@@ -730,19 +730,17 @@ void GCodeLoader::setSegmentDisplayInfo(QSharedPointer<SegmentBase>& segment, co
         display_width =
             m_sb->setting<float>(Constants::ProfileSettings::Inset::kBeadWidth) * Constants::OpenGL::kObjectToView;
     }
+    else if (comment.contains("SKELETON-")) {
+        // Adapted skeleton bead width
+        int start = comment.indexOf("-") + 1;
+        int end = comment.indexOf(" ", start);
+        float bead_width = comment.mid(start, end - start).toFloat();
+        display_width = bead_width * Constants::OpenGL::kObjectToView;
+    }
     else if (comment.contains("SKELETON")) {
-        // If the skeleton is adaptive, extract the bead width from the comment, otherwise use the static bead width
-        if (m_sb->setting<bool>(Constants::ProfileSettings::Skeleton::kSkeletonAdapt)) {
-            // Extract the bead width from the comment
-            unsigned int start = comment.indexOf("-") + 1;
-            unsigned int end = comment.indexOf(" ", start);
-            float bead_width = comment.mid(start, end - start).toFloat();
-            display_width = bead_width * Constants::OpenGL::kObjectToView;
-        }
-        else { // Static skeleton bead width
-            display_width = m_sb->setting<float>(Constants::ProfileSettings::Skeleton::kBeadWidth) *
-                            Constants::OpenGL::kObjectToView;
-        }
+        // Static skeleton bead width
+        display_width =
+            m_sb->setting<float>(Constants::ProfileSettings::Skeleton::kBeadWidth) * Constants::OpenGL::kObjectToView;
     }
     else if (comment.contains("SKIN")) {
         display_width =
