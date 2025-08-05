@@ -233,21 +233,19 @@ bool pointsAreClose(Point pt1, Point pt2, Distance distSqrd) { return std::pow(p
 
 uint32_t cantorPair(uint32_t a, uint32_t b) { return (a + b) * (a + b + 1) / 2 + a; }
 
-std::tuple<double, Point> findClosestPointOnSegment(Point a, Point b, Point p) {
-    Point closest;
-
+std::pair<Point, double> nearestPointOnSegment(const Point& a, const Point& b, const Point& p) {
     double t = (b - a).dot(p - a) / (b - a).dot(b - a);
+
     if (t < 0) {
-        closest = a;
+        return std::make_pair(a, p.distance(a)());
     }
     else if (t > 1) {
-        closest = b;
+        return std::make_pair(b, p.distance(b)());
     }
     else {
-        closest = a * (1 - t) + b * t;
+        Point nearest = a * (1.0 - t) + b * t;
+        return std::make_pair(nearest, p.distance(nearest)());
     }
-
-    return std::make_tuple(p.distance(closest)(), closest);
 }
 
 QVector<Point> chamferCorner(const Point& A, const Point& B, const Point& C, Distance chamferDistance) {

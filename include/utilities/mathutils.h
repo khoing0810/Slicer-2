@@ -134,13 +134,13 @@ bool pointsAreClose(Point pt1, Point pt2, Distance distSqrd);
 uint32_t cantorPair(uint32_t a, uint32_t b);
 
 /**
- * @brief Finds the closest point on a segment to a point
- * @param[in] a Start point of the segment
- * @param[in] b End point of the segment
- * @param[in] p Point to find the closest point to
- * @return A tuple containing the distance to the closest point and the closest point itself
+ * @brief Finds the nearest point on a segment to a given point and the distance to that point.
+ * @param[in] a Start point of the segment.
+ * @param[in] b End point of the segment.
+ * @param[in] p Point to find the nearest point to.
+ * @return A pair containing the nearest point on the segment and its distance to the point p.
  */
-std::tuple<double, Point> findClosestPointOnSegment(Point a, Point b, Point p);
+std::pair<Point, double> nearestPointOnSegment(const Point& a, const Point& b, const Point& p);
 
 /*!
  * \brief chamferCorner

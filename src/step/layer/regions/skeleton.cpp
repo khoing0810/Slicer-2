@@ -114,13 +114,13 @@ void Skeleton::computeSegmentVoronoi() {
     // Filter for Voronoi edges whose minimum distance to the boundary is less than the assigned bead width
     auto filter = [bead_width](const Polyline& source1, const Polyline& source2, const Point& edge_start,
                                const Point& edge_end) {
-        Distance min_dist = std::numeric_limits<double>::max();
+        double min_dist = std::numeric_limits<double>::max();
 
         // Compute minimum distance between each source segment and the Voronoi edge
         for (const auto& source : {source1, source2}) {
             for (const auto& pt : {edge_start, edge_end}) {
-                Distance dist = get<0>(MathUtils::findClosestPointOnSegment(source.first(), source.last(), pt));
-                min_dist = std::min(min_dist(), dist());
+                min_dist =
+                    std::min(min_dist, MathUtils::nearestPointOnSegment(source.first(), source.last(), pt).second);
             }
         }
 
@@ -721,11 +721,10 @@ QVector<QSharedPointer<LineSegment>> Skeleton::adaptBeadWidth(const Point& start
         Point p(start.x() + i * dx, start.y() + i * dy, 0);
 
         // Find the closest point on the segment and its distance to the point p
-        Distance circumradius = std::numeric_limits<double>::max();
+        double circumradius = std::numeric_limits<double>::max();
         for (const Polyline& edge : m_geometry.getEdges()) {
             circumradius =
-                std::min(circumradius,
-                         Distance(std::get<0>(MathUtils::findClosestPointOnSegment(edge.first(), edge.last(), p))));
+                std::min(circumradius, MathUtils::nearestPointOnSegment(edge.first(), edge.last(), p).second);
         }
 
         // Append node with bead width to discretized nodes

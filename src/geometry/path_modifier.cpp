@@ -57,20 +57,19 @@ void PathModifierGenerator::GenerateTravel(Path& path, Point current_location, V
 void PathModifierGenerator::GeneratePreStart(Path& path, Distance prestartDistance, Velocity prestartSpeed,
                                              AngularVelocity prestartExtruderSpeed, QVector<Path>& outerPath) {
     Point closest;
-    float dist = std::numeric_limits<float>::max();
+    double distance = std::numeric_limits<double>::max();
     int pathIndex, segmentIndex, firstNonTravelSegment = 0;
     Point firstPoint = path[firstNonTravelSegment]->start();
 
     for (int i = 0, totalContours = outerPath.size(); i < totalContours; ++i) {
         for (int j = 0, totalSegments = outerPath[i].size(); j < totalSegments; ++j) {
             if (!dynamic_cast<TravelSegment*>(outerPath[i][j].data())) {
-                Point tempClosest;
-                float tempDist;
-                std::tie(tempDist, tempClosest) =
-                    MathUtils::findClosestPointOnSegment(outerPath[i][j]->start(), outerPath[i][j]->end(), firstPoint);
-                if (tempDist < dist) {
-                    closest = tempClosest;
-                    dist = tempDist;
+                auto [temp_closest, temp_distance] =
+                    MathUtils::nearestPointOnSegment(outerPath[i][j]->start(), outerPath[i][j]->end(), firstPoint);
+
+                if (temp_distance < distance) {
+                    closest = temp_closest;
+                    distance = temp_distance;
                     pathIndex = i;
                     segmentIndex = j;
                 }
@@ -675,23 +674,22 @@ void PathModifierGenerator::GenerateSlowdown(Path& path, Distance slowDownDistan
     }
 }
 
-void PathModifierGenerator::GenerateLayerLeadIn(Path& path, const Point& leadIn,
-                                                QSharedPointer<SettingsBase> sb) {
+void PathModifierGenerator::GenerateLayerLeadIn(Path& path, const Point& leadIn, QSharedPointer<SettingsBase> sb) {
     QSharedPointer<SegmentBase> firstBuildSegment;
     int extRate;
     int pathSize = path.size();
 
-    for (int i = 0; i < pathSize; i++)
-    {
+    for (int i = 0; i < pathSize; i++) {
         firstBuildSegment = path[i];
         extRate = path[i]->getSb()->setting<int>(Constants::SegmentSettings::kExtruderSpeed);
-        if (extRate <= 0) //If extrusion rate is zero, must be travel move
+        if (extRate <= 0) // If extrusion rate is zero, must be travel move
         {
             path[i]->setEnd(leadIn);
             continue;
         }
 
-        QSharedPointer<LineSegment> leadInSegment = QSharedPointer<LineSegment>::create(leadIn, firstBuildSegment->start());
+        QSharedPointer<LineSegment> leadInSegment =
+            QSharedPointer<LineSegment>::create(leadIn, firstBuildSegment->start());
         leadInSegment->getSb()->setSetting(
             Constants::SegmentSettings::kWidth,
             firstBuildSegment->getSb()->setting<Distance>(Constants::SegmentSettings::kWidth));
@@ -714,7 +712,7 @@ void PathModifierGenerator::GenerateLayerLeadIn(Path& path, const Point& leadIn,
         path.insert(i, leadInSegment);
 
         break;
-}
+    }
 }
 
 void PathModifierGenerator::GenerateTrajectorySlowdown(Path& path, QSharedPointer<SettingsBase> sb) {
@@ -900,19 +898,18 @@ void PathModifierGenerator::GenerateTipWipe(Path& path, PathModifiers modifiers,
 
     // can only go forward, connect to inset
     Point closest;
-    float dist = std::numeric_limits<float>::max();
+    double distance = std::numeric_limits<double>::max();
     int pathIndex, segmentIndex;
     Point finalPoint = path[path.size() - 1]->end();
     int finalIndex = path.size() - 1;
     for (int i = 0, totalContours = outerPath.size(); i < totalContours; ++i) {
         for (int j = 0, totalSegments = outerPath[i].size(); j < totalSegments; ++j) {
-            Point tempClosest;
-            float tempDist;
-            std::tie(tempDist, tempClosest) =
-                MathUtils::findClosestPointOnSegment(outerPath[i][j]->start(), outerPath[i][j]->end(), finalPoint);
-            if (tempDist < dist) {
-                closest = tempClosest;
-                dist = tempDist;
+            auto [temp_closest, temp_distance] =
+                MathUtils::nearestPointOnSegment(outerPath[i][j]->start(), outerPath[i][j]->end(), finalPoint);
+
+            if (temp_distance < distance) {
+                closest = temp_closest;
+                distance = temp_distance;
                 segmentIndex = j;
                 pathIndex = i;
             }
@@ -920,7 +917,7 @@ void PathModifierGenerator::GenerateTipWipe(Path& path, PathModifiers modifiers,
     }
 
     if (modifiers == PathModifiers::kForwardTipWipe) {
-        if (dist > path[finalIndex]->getSb()->setting<Distance>(Constants::SegmentSettings::kWidth)) {
+        if (distance > path[finalIndex]->getSb()->setting<Distance>(Constants::SegmentSettings::kWidth)) {
             GenerateForwardTipWipeOpenLoop(path, modifiers, wipeDistance, wipeSpeed, extruderSpeed, tipWipeLiftDistance,
                                            tipWipeCutoffDistance, false);
         }
