@@ -43,6 +43,10 @@ QList<QSharedPointer<SegmentBase>>::iterator Path::begin() { return m_segments.b
 
 QList<QSharedPointer<SegmentBase>>::iterator Path::end() { return m_segments.end(); }
 
+QList<QSharedPointer<SegmentBase>>::const_iterator Path::begin() const { return m_segments.constBegin(); }
+
+QList<QSharedPointer<SegmentBase>>::const_iterator Path::end() const { return m_segments.constEnd(); }
+
 QSharedPointer<SegmentBase> Path::operator[](const int index) const { return m_segments[index]; }
 
 QSharedPointer<SegmentBase> Path::at(const int index) const { return m_segments[index]; }

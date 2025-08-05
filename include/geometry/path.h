@@ -49,11 +49,17 @@ class Path {
     //! \brief Add a segment to the end of the path.
     Path operator+=(const QSharedPointer<SegmentBase>& ps);
 
-    //! \brief Beginning of the path (for range-based for).
+    //! @brief Return an iterator to the start of the segments.
     QList<QSharedPointer<SegmentBase>>::iterator begin();
 
-    //! \brief End of the path (for range-based for).
+    //! @brief Return an iterator to the end of the segments.
     QList<QSharedPointer<SegmentBase>>::iterator end();
+
+    //! @brief Return a const iterator to the start of the segments.
+    QList<QSharedPointer<SegmentBase>>::const_iterator begin() const;
+
+    //! @brief Return a const iterator to the end of the segments.
+    QList<QSharedPointer<SegmentBase>>::const_iterator end() const;
 
     //! \brief Access the segments at an index.
     QSharedPointer<SegmentBase> operator[](const int index) const;
