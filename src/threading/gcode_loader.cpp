@@ -730,17 +730,11 @@ void GCodeLoader::setSegmentDisplayInfo(QSharedPointer<SegmentBase>& segment, co
         display_width =
             m_sb->setting<float>(Constants::ProfileSettings::Inset::kBeadWidth) * Constants::OpenGL::kObjectToView;
     }
-    else if (comment.contains("SKELETON-")) {
-        // Adapted skeleton bead width
-        int start = comment.indexOf("-") + 1;
+    else if (comment.contains("SKELETON")) {
+        int start = comment.indexOf("SKELETON-") + 9;
         int end = comment.indexOf(" ", start);
         float bead_width = comment.mid(start, end - start).toFloat();
         display_width = bead_width * Constants::OpenGL::kObjectToView;
-    }
-    else if (comment.contains("SKELETON")) {
-        // Static skeleton bead width
-        display_width =
-            m_sb->setting<float>(Constants::ProfileSettings::Skeleton::kBeadWidth) * Constants::OpenGL::kObjectToView;
     }
     else if (comment.contains("SKIN")) {
         display_width =
