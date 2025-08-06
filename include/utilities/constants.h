@@ -1042,7 +1042,7 @@ class Constants {
         static const QString kWireFeed;
         static const QString kFinalWireCoast;
         static const QString kFinalWireFeed;
-        static const QString kAdaptedWidth;
+        static const QString kAdapted;
     };
 
     class Limits {

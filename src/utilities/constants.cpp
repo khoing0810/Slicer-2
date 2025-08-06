@@ -931,7 +931,7 @@ const QString Constants::SegmentSettings::kIsRegionStartSegment = "is_region_sta
 const QString Constants::SegmentSettings::kWireFeed = "wire_feed";
 const QString Constants::SegmentSettings::kFinalWireCoast = "final_wire_coast";
 const QString Constants::SegmentSettings::kFinalWireFeed = "final_wire_feed";
-const QString Constants::SegmentSettings::kAdaptedWidth = "adapted_width";
+const QString Constants::SegmentSettings::kAdapted = "adapted";
 
 //================================================================================
 // Limits
