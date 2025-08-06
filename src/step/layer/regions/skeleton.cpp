@@ -1,30 +1,21 @@
-// Local
+
 #include "step/layer/regions/skeleton.h"
 
+#include "boost/graph/undirected_dfs.hpp"
+#include "boost/polygon/voronoi.hpp"
 #include "geometry/path_modifier.h"
 #include "geometry/segments/line.h"
 #include "optimizers/polyline_order_optimizer.h"
 #include "utilities/mathutils.h"
-
-// Boost
-#include "boost/graph/undirected_dfs.hpp"
-#include "boost/polygon/voronoi.hpp"
-
-using boost::polygon::voronoi_diagram;
-
-typedef boost::polygon::point_data<int> point;
-typedef voronoi_diagram<double>::cell_type cell_type;
-typedef voronoi_diagram<double>::edge_type edge_type;
-typedef voronoi_diagram<double>::vertex_type vertex_type;
 
 template <> struct boost::polygon::geometry_concept<ORNL::Point> {
     typedef point_concept type;
 };
 
 template <> struct boost::polygon::point_traits<ORNL::Point> {
-    typedef int coordinate_type;
+    using coordinate_type = int;
 
-    static inline coordinate_type get(const ORNL::Point& point, orientation_2d orient) {
+    static coordinate_type get(const ORNL::Point& point, orientation_2d orient) {
         return (orient == HORIZONTAL) ? point.x() : point.y();
     }
 };
@@ -34,15 +25,21 @@ template <> struct boost::polygon::geometry_concept<ORNL::Polyline> {
 };
 
 template <> struct boost::polygon::segment_traits<ORNL::Polyline> {
-    typedef int coordinate_type;
-    typedef ORNL::Point point_type;
+    using coordinate_type = int;
+    using point_type = ORNL::Point;
 
-    static inline point_type get(const ORNL::Polyline& segment, direction_1d dir) {
+    static point_type get(const ORNL::Polyline& segment, direction_1d dir) {
         return dir.to_int() ? segment.first() : segment.last();
     }
 };
 
 namespace ORNL {
+using ES = Constants::ExperimentalSettings;
+using MS = Constants::MaterialSettings;
+using PS = Constants::ProfileSettings;
+using PRS = Constants::PrinterSettings;
+using SS = Constants::SegmentSettings;
+
 Skeleton::Skeleton(const QSharedPointer<SettingsBase>& sb, const int index,
                    const QVector<SettingsPolygon>& settings_polygons, const SingleExternalGridInfo& gridInfo,
                    bool isWireFed)
@@ -67,15 +64,14 @@ QString Skeleton::writeGCode(QSharedPointer<WriterBase> writer) {
 void Skeleton::compute(uint layer_num, QSharedPointer<SyncManager>& sync) {
     m_paths.clear();
 
-    setMaterialNumber(m_sb->setting<int>(Constants::MaterialSettings::MultiMaterial::kPerimterNum));
+    setMaterialNumber(m_sb->setting<int>(MS::MultiMaterial::kPerimterNum));
 
     incorporateLostGeometry();
 
     if (!m_geometry.isEmpty()) {
         simplifyInputGeometry(layer_num);
 
-        const SkeletonInput& input =
-            static_cast<SkeletonInput>(m_sb->setting<int>(Constants::ProfileSettings::Skeleton::kSkeletonInput));
+        const SkeletonInput& input = static_cast<SkeletonInput>(m_sb->setting<int>(PS::Skeleton::kSkeletonInput));
         switch (input) {
             case SkeletonInput::kSegments:
                 computeSegmentVoronoi();
@@ -109,7 +105,7 @@ void Skeleton::compute(uint layer_num, QSharedPointer<SyncManager>& sync) {
 }
 
 void Skeleton::computeSegmentVoronoi() {
-    const Distance& bead_width = m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kBeadWidth);
+    const Distance& bead_width = m_sb->setting<Distance>(PS::Skeleton::kBeadWidth);
 
     // Filter for Voronoi edges whose minimum distance to the boundary is less than the assigned bead width
     auto filter = [bead_width](const Polyline& source1, const Polyline& source2, const Point& edge_start,
@@ -128,30 +124,27 @@ void Skeleton::computeSegmentVoronoi() {
         return (min_dist * 2.0) < bead_width;
     };
 
-    //! Gather input geometry
+    // Gather input geometry
     QVector<Polyline> bounding_edges = m_geometry.getEdges();
 
-    //! Construct Voronoi Diagram
-    voronoi_diagram<double> vd;
+    // Construct Voronoi Diagram
+    boost::polygon::voronoi_diagram<double> vd;
     construct_voronoi(bounding_edges.begin(), bounding_edges.end(), &vd);
 
-    //! Gather skeleton segments
-    for (voronoi_diagram<double>::const_cell_iterator it = vd.cells().begin(); it != vd.cells().end(); ++it) {
-        const cell_type& cell = *it;
-
-        if (!cell.is_degenerate()) {
-            const edge_type* edge = cell.incident_edge();
+    // Gather skeleton segments
+    for (auto cell_iter = vd.cells().cbegin(); cell_iter != vd.cells().end(); ++cell_iter) {
+        if (!cell_iter->is_degenerate()) {
+            auto edge = cell_iter->incident_edge();
 
             do {
                 if (edge->is_primary()) {
                     if (edge->is_finite()) {
-                        //! Ensures skeleton segments are only generated once since voronoi diagram implements twin
-                        //! edges
+                        // Ensure skeleton segments are only generated once since voronoi diagram implements twin edges
                         if (edge->cell()->source_index() < edge->twin()->cell()->source_index()) {
                             const Polyline& source1 = bounding_edges[edge->cell()->source_index()];
                             const Polyline& source2 = bounding_edges[edge->twin()->cell()->source_index()];
 
-                            //! Ensures skeleton segments run parallel to the border geometry
+                            //! Ensure skeleton segments run parallel to the border geometry
                             if (source1.first() != source2.first() && source1.first() != source2.last() &&
                                 source1.last() != source2.first() && source1.last() != source2.last()) {
                                 Point start(edge->vertex0()->x(), edge->vertex0()->y());
@@ -160,8 +153,7 @@ void Skeleton::computeSegmentVoronoi() {
                                 // If adaptive bead width is enabled, include all skeleton segments.
                                 // Otherwise, filter skeleton segments whose minimum distance to the border geometry is
                                 // less than half the bead width.
-                                if (m_sb->setting<bool>(
-                                        Constants::ProfileSettings::Skeleton::kSkeletonAdapt)) { // Adaptive bead width
+                                if (m_sb->setting<bool>(PS::Skeleton::kSkeletonAdapt)) { // Adaptive bead width
                                     m_skeleton_geometry += m_geometry & Polyline({start, end});
                                 }
                                 else if (!filter(source1, source2, start, end)) { // Static bead width
@@ -172,7 +164,7 @@ void Skeleton::computeSegmentVoronoi() {
                     }
                 }
                 edge = edge->next();
-            } while (edge != cell.incident_edge());
+            } while (edge != cell_iter->incident_edge());
         }
     }
 
@@ -198,13 +190,12 @@ void Skeleton::computePointVoronoi() {
     }
 
     //! Construct Voronoi Diagram
-    voronoi_diagram<double> vd;
+    boost::polygon::voronoi_diagram<double> vd;
     construct_voronoi(points.begin(), points.end(), &vd);
 
     //! Gather skeleton segments
-    for (voronoi_diagram<double>::const_cell_iterator it = vd.cells().begin(); it != vd.cells().end(); ++it) {
-        const cell_type& cell = *it;
-        const edge_type* edge = cell.incident_edge();
+    for (auto cell_iter = vd.cells().cbegin(); cell_iter != vd.cells().end(); ++cell_iter) {
+        auto edge = cell_iter->incident_edge();
 
         do {
             if (edge->is_primary()) {
@@ -219,7 +210,7 @@ void Skeleton::computePointVoronoi() {
                     }
                 }
                 else { //! Infinite edge case
-                    const vertex_type* v0 = edge->vertex0();
+                    auto v0 = edge->vertex0();
 
                     //! Ensures skeleton segments are only generated once since voronoi diagram implements twin edges
                     if (v0) {
@@ -237,7 +228,7 @@ void Skeleton::computePointVoronoi() {
             }
 
             edge = edge->next();
-        } while (edge != cell.incident_edge());
+        } while (edge != cell_iter->incident_edge());
     }
 }
 
@@ -251,8 +242,7 @@ void Skeleton::incorporateLostGeometry() {
 }
 
 void Skeleton::simplifyInputGeometry(const uint& layer_num) {
-    const Distance& cleaning_dist =
-        m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kSkeletonInputCleaningDistance);
+    const Distance& cleaning_dist = m_sb->setting<Distance>(PS::Skeleton::kSkeletonInputCleaningDistance);
 
     //! Too large of a cleaning distance may decimate inner/outer polygons such that they
     //! contain no points or intersect each other. Check that cleaning distance is appropriate.
@@ -309,7 +299,7 @@ void Skeleton::simplifyInputGeometry(const uint& layer_num) {
     }
 
     //! Chamfer sharp corners
-    const Angle& threshold = m_sb->setting<Angle>(Constants::ProfileSettings::Skeleton::kSkeletonInputChamferingAngle);
+    const Angle& threshold = m_sb->setting<Angle>(PS::Skeleton::kSkeletonInputChamferingAngle);
     for (Polygon& geometry : m_geometry) {
         Polyline poly = geometry.toPolyline();
         Polygon new_geometry;
@@ -335,8 +325,7 @@ void Skeleton::simplifyInputGeometry(const uint& layer_num) {
 }
 
 void Skeleton::simplifyOutputGeometry() {
-    const Distance& cleaning_distance =
-        m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kSkeletonOutputCleaningDistance);
+    const Distance& cleaning_distance = m_sb->setting<Distance>(PS::Skeleton::kSkeletonOutputCleaningDistance);
 
     for (Polyline& poly_line : m_computed_geometry) {
         poly_line = poly_line.simplify(cleaning_distance);
@@ -373,8 +362,7 @@ void Skeleton::generateSkeletonGraph() {
 void Skeleton::cleanSkeletonGraph(Distance cleaning_distance) {
     Distance distSqrd = std::pow(cleaning_distance(), 2);
 
-    Vertex_Iter vi, vi_end, v_root;
-    boost::tie(vi, vi_end) = vertices(m_skeleton_graph);
+    auto [vi, vi_end] = vertices(m_skeleton_graph);
 
     //! Create vertex modification map
     QMap<SkeletonVertex, bool> vertex_mod_map;
@@ -383,9 +371,9 @@ void Skeleton::cleanSkeletonGraph(Distance cleaning_distance) {
         ++vi;
     }
 
-    boost::tie(vi, vi_end) = vertices(m_skeleton_graph);
+    std::tie(vi, vi_end) = vertices(m_skeleton_graph);
     while (vi != vi_end) {
-        v_root = vi;
+        auto v_root = vi;
         vi++;
 
         //! Clean skeleton graph according to ClipperLib2's cleanPolygons function.
@@ -393,8 +381,7 @@ void Skeleton::cleanSkeletonGraph(Distance cleaning_distance) {
         //! If a vertice has undergone a modification it is marked so as not to be modified again. This prevents
         //! skeletal drifting.
         if (boost::degree(*v_root, m_skeleton_graph) == 2 && !vertex_mod_map[*v_root]) {
-            Out_Edge_Iter e0, e1;
-            boost::tie(e0, e1) = boost::out_edges(*v_root, m_skeleton_graph);
+            auto [e0, e1] = boost::out_edges(*v_root, m_skeleton_graph);
             --e1;
 
             SkeletonVertex v0 = boost::target(*e0, m_skeleton_graph);
@@ -412,7 +399,7 @@ void Skeleton::cleanSkeletonGraph(Distance cleaning_distance) {
 
                 vertex_mod_map[v0] = true;
                 vertex_mod_map[v1] = true;
-                boost::tie(vi, vi_end) = vertices(m_skeleton_graph);
+                std::tie(vi, vi_end) = vertices(m_skeleton_graph);
             }
             else {
                 vertex_mod_map[*v_root] = true;
@@ -422,13 +409,13 @@ void Skeleton::cleanSkeletonGraph(Distance cleaning_distance) {
 }
 
 template <typename TVertex, typename TEdge, typename TGraph> struct dfs_visitor : public boost::dfs_visitor<> {
-    dfs_visitor(QVector<Edge>& longest_path_) : longest_path(longest_path_) {}
+    dfs_visitor(QVector<SkeletonEdge>& longest_path_) : longest_path(longest_path_) {}
 
-    using colormap = std::map<SkeletonGraph::vertex_descriptor, boost::default_color_type>;
-    colormap vertex_coloring;
+    using VertexColorMap = std::map<SkeletonVertex, boost::default_color_type>;
+    VertexColorMap vertex_coloring;
 
-    using edgeColorMap = std::map<SkeletonGraph::edge_descriptor, boost::default_color_type>;
-    edgeColorMap edge_coloring;
+    using EdgeColorMap = std::map<SkeletonEdge, boost::default_color_type>;
+    EdgeColorMap edge_coloring;
 
     void tree_edge(const TEdge& e, const TGraph& g) {
         TVertex source = boost::source(e, g), target = boost::target(e, g);
@@ -436,7 +423,7 @@ template <typename TVertex, typename TEdge, typename TGraph> struct dfs_visitor 
         predecessor_map[target] = predecessor_map[source];
         predecessor_map[target].push(source);
 
-        if (typeid(g) == typeid(SubGraph) && boost::degree(target, g) == 1) {
+        if (typeid(g) == typeid(SkeletonSubgraph) && boost::degree(target, g) == 1) {
             getSimplePath(target, g);
         }
     }
@@ -453,7 +440,7 @@ template <typename TVertex, typename TEdge, typename TGraph> struct dfs_visitor 
     void getCycle(const TVertex& v, const TGraph& g) {
         TVertex source = v, target;
 
-        QVector<Edge> cycle;
+        QVector<SkeletonEdge> cycle;
         Distance cycle_length = 0;
         while (predecessor_map[v].top() != v) {
             target = predecessor_map[v].pop();
@@ -476,7 +463,7 @@ template <typename TVertex, typename TEdge, typename TGraph> struct dfs_visitor 
     void getSimplePath(const TVertex v, const TGraph& g) {
         TVertex source = v, target;
 
-        QVector<Edge> simple_path;
+        QVector<SkeletonEdge> simple_path;
         Distance length = 0;
         while (!predecessor_map[v].isEmpty()) {
             target = predecessor_map[v].pop();
@@ -494,27 +481,29 @@ template <typename TVertex, typename TEdge, typename TGraph> struct dfs_visitor 
 
   private:
     QMap<SkeletonVertex, QStack<SkeletonVertex>> predecessor_map;
-    QVector<Edge>& longest_path;
+    QVector<SkeletonEdge>& longest_path;
     Distance longest_path_length = 0;
 };
 
 void Skeleton::extractCycles() {
-    //! Extract cycles in order of longest to shortest
+    // Extract cycles in order of longest to shortest
     while (true) {
-        QVector<Edge> longest_cycle;
-        dfs_visitor<SkeletonVertex, Edge, SkeletonGraph> vis(longest_cycle);
+        QVector<SkeletonEdge> longest_cycle;
+        dfs_visitor<SkeletonVertex, SkeletonEdge, SkeletonGraph> vis(longest_cycle);
         boost::undirected_dfs(m_skeleton_graph, vis, make_assoc_property_map(vis.vertex_coloring),
                               make_assoc_property_map(vis.edge_coloring));
 
         if (!longest_cycle.isEmpty()) {
             extractPath(longest_cycle);
         }
-        else
-            break; //! All cycles have been removed
+        else {
+            break; // All cycles have been removed
+        }
 
-        // check if cycle removal empties graph
-        if (boost::num_edges(m_skeleton_graph) == 0 || boost::num_vertices(m_skeleton_graph) == 0)
+        // Check if cycle removal empties graph
+        if (boost::num_edges(m_skeleton_graph) == 0 || boost::num_vertices(m_skeleton_graph) == 0) {
             break;
+        }
     }
 }
 
@@ -524,8 +513,7 @@ void Skeleton::extractSimplePaths() {
         //! Create Vertex Index Map. Needed for SubGraph Map.
         std::map<SkeletonVertex, int> vertex_index_map;
         boost::associative_property_map<std::map<SkeletonVertex, int>> index_map(vertex_index_map);
-        Vertex_Iter v, v_end;
-        boost::tie(v, v_end) = boost::vertices(m_skeleton_graph);
+        auto [v, v_end] = boost::vertices(m_skeleton_graph);
         for (int i = 0; v != v_end; ++v, ++i) {
             boost::put(index_map, *v, i);
         }
@@ -537,13 +525,13 @@ void Skeleton::extractSimplePaths() {
             boost::connected_components(m_skeleton_graph, subgraph_map, boost::vertex_index_map(index_map));
 
         //! Create SubGraph
-        SubGraph subgraph(m_skeleton_graph, boost::keep_all(),
-                          subgraph_filter(QMap<SkeletonVertex, int>(vertex_subgraph_map)));
+        SkeletonSubgraph subgraph(m_skeleton_graph, boost::keep_all(),
+                                  SkeletonSubgraphFilter(QMap<SkeletonVertex, int>(vertex_subgraph_map)));
 
         //! Find open edge to start dfs from
-        SubGraph::vertex_iterator vi, vi_end;
+        SkeletonSubgraph::vertex_iterator vi, vi_end;
         boost::tie(vi, vi_end) = vertices(subgraph);
-        SubGraph::vertex_descriptor start = *vi;
+        SkeletonSubgraph::vertex_descriptor start = *vi;
         while (vi != vi_end) {
             if (boost::degree(*vi, subgraph) == 1) {
                 start = *vi;
@@ -554,8 +542,9 @@ void Skeleton::extractSimplePaths() {
         }
 
         //! Collect longest simple path
-        QVector<Edge> longest_simple_path;
-        dfs_visitor<SubGraph::vertex_descriptor, SubGraph::edge_descriptor, SubGraph> vis(longest_simple_path);
+        QVector<SkeletonEdge> longest_simple_path;
+        dfs_visitor<SkeletonSubgraph::vertex_descriptor, SkeletonSubgraph::edge_descriptor, SkeletonSubgraph> vis(
+            longest_simple_path);
         boost::undirected_dfs(subgraph, vis, make_assoc_property_map(vis.vertex_coloring),
                               make_assoc_property_map(vis.edge_coloring), start);
 
@@ -565,11 +554,11 @@ void Skeleton::extractSimplePaths() {
     }
 }
 
-void Skeleton::extractPath(QVector<Edge> path_) {
+void Skeleton::extractPath(QVector<SkeletonEdge> path_) {
     Polyline path;
-    Distance min_path_length = m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kMinPathLength);
+    Distance min_path_length = m_sb->setting<Distance>(PS::Skeleton::kMinPathLength);
 
-    Edge e = path_.takeFirst();
+    SkeletonEdge e = path_.takeFirst();
     path << m_skeleton_graph[e.m_source] << m_skeleton_graph[e.m_target];
     remove_edge(e, m_skeleton_graph);
 
@@ -581,7 +570,7 @@ void Skeleton::extractPath(QVector<Edge> path_) {
         remove_vertex(e.m_target, m_skeleton_graph);
     }
 
-    for (Edge& e : path_) {
+    for (SkeletonEdge& e : path_) {
         path << m_skeleton_graph[e.m_target];
         remove_edge(e, m_skeleton_graph);
 
@@ -597,47 +586,6 @@ void Skeleton::extractPath(QVector<Edge> path_) {
     //! Ensure path meets minimum path length requirement
     if (path.length() > min_path_length) {
         m_computed_geometry += path;
-    }
-}
-
-void Skeleton::getSkeleton() {
-    const Distance& min_path_length = m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kMinPathLength);
-
-    //! Locate pivot vertices with degree != 2
-    QVector<SkeletonVertex> pivots;
-    for (SkeletonVertex& vertex : boost::make_iterator_range(vertices(m_skeleton_graph))) {
-        if (boost::degree(vertex, m_skeleton_graph) != 2) {
-            pivots += vertex;
-        }
-    }
-
-    //! If no pivots exist, then the skeleton must be a single closed loop contour and there is no need to check
-    //! its path length.
-    if (!pivots.isEmpty()) {
-        for (SkeletonVertex& pivot : pivots) {
-            while (boost::degree(pivot, m_skeleton_graph) > 0) {
-                Out_Edge_Iter edge = boost::out_edges(pivot, m_skeleton_graph).first;
-                SkeletonVertex target = boost::target(*edge, m_skeleton_graph);
-
-                Polyline path({m_skeleton_graph[pivot], m_skeleton_graph[target]});
-                remove_edge(edge, m_skeleton_graph);
-
-                if (boost::degree(target, m_skeleton_graph) != 0) {
-                    do {
-                        edge = boost::out_edges(target, m_skeleton_graph).first;
-                        target = boost::target(*edge, m_skeleton_graph);
-
-                        path += m_skeleton_graph[target];
-                        remove_edge(edge, m_skeleton_graph);
-                    } while (!pivots.contains(target) && boost::degree(target, m_skeleton_graph) != 0);
-                }
-
-                //! Ensure path meets minimum path length requirement
-                if (path.length() >= min_path_length) {
-                    m_computed_geometry += path;
-                }
-            }
-        }
     }
 }
 
@@ -698,140 +646,117 @@ void Skeleton::inspectSkeletonGraph() {
     }
 }
 
-QVector<QSharedPointer<LineSegment>> Skeleton::adaptBeadWidth(const Point& start, const Point& end) {
-    // Retrieve profile settings
-    const auto& ref_width = m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kBeadWidth);
-    const auto& ref_speed = m_sb->setting<Velocity>(Constants::ProfileSettings::Skeleton::kSpeed);
-    double speed_factor = ref_speed() * ref_width(); // Inverse-proportional speed factor
-    const auto& step = m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kSkeletonAdaptStepSize);
+void Skeleton::populateSegmentSettings(QSharedPointer<SettingsBase> segment_sb, const QSharedPointer<SettingsBase>& sb,
+                                       bool adapted, const Distance& adapted_width, const Velocity& adapted_speed) {
+    // Populate segment settings with the provided settings base
+    segment_sb->populate(sb);
 
-    // Define discretization variables
-    Distance segment_length = start.distance(end);
-    int steps = std::max(1, static_cast<int>(segment_length() /
-                                             step())); // Ensure num_subsegments is at least 1 to avoid division by zero
-    double dx = (end.x() - start.x()) / steps;
-    double dy = (end.y() - start.y()) / steps;
+    // Set segment settings
+    segment_sb->setSetting(SS::kWidth, adapted ? adapted_width : sb->setting<Distance>(PS::Skeleton::kBeadWidth));
+    segment_sb->setSetting(SS::kSpeed, adapted ? adapted_speed : sb->setting<Velocity>(PS::Skeleton::kSpeed));
+    segment_sb->setSetting(SS::kHeight, sb->setting<Distance>(PS::Layer::kLayerHeight));
+    segment_sb->setSetting(SS::kAccel, sb->setting<Acceleration>(PRS::Acceleration::kSkeleton));
+    segment_sb->setSetting(SS::kExtruderSpeed, sb->setting<AngularVelocity>(PS::Skeleton::kExtruderSpeed));
+    segment_sb->setSetting(SS::kMaterialNumber, sb->setting<int>(MS::MultiMaterial::kPerimterNum));
+    segment_sb->setSetting(SS::kRegionType, RegionType::kSkeleton);
+    segment_sb->setSetting(SS::kAdapted, adapted);
+}
 
-    // Initialize vector to store nodes (location, circumradius)
-    QVector<QPair<Point, Distance>> nodes;
-    nodes.reserve(steps + 1);
+SegmentList Skeleton::createSegments(const Point& start, const Point& end,
+                                     const QSharedPointer<SettingsBase>& sb) const {
+    SegmentList segments;
 
-    // Discretize segment into set of nodes
+    // ---------- Static bead width ----------
+    if (!sb->setting<bool>(PS::Skeleton::kSkeletonAdapt)) {
+        SegmentPtr segment = SegmentPtr::create(start, end);
+        populateSegmentSettings(segment->getSb(), sb);
+        segments.append(segment);
+        return segments;
+    }
+
+    // ---------- Adaptive bead width ----------
+    const Distance ref_width = sb->setting<Distance>(PS::Skeleton::kBeadWidth);
+    const Velocity ref_speed = sb->setting<Velocity>(PS::Skeleton::kSpeed);
+    const double speed_factor = ref_speed() * ref_width(); // Inverse-proportional speed factor
+    const double min_speed = ref_speed() * 0.01;           // 1% of reference speed
+
+    // Discretize the input segment
+    const Distance step = sb->setting<Distance>(PS::Skeleton::kSkeletonAdaptStepSize);
+    const int steps = std::max(1, int(std::ceil(start.distance(end)() / step())));
+    const double dx = (end.x() - start.x()) / steps;
+    const double dy = (end.y() - start.y()) / steps;
+    const double tol = ref_width() * 0.01; // Consolidation tolerance = 1% of reference bead width
+
+    QVector<Point> pts;
+    pts.reserve(steps + 1);
+    QVector<Distance> bw;
+    bw.reserve(steps + 1);
+
+    // Sample points along the segment and compute local bead widths
     for (int i = 0; i <= steps; ++i) {
         Point p(start.x() + i * dx, start.y() + i * dy, 0);
 
-        // Find the closest point on the segment and its distance to the point p
-        double circumradius = std::numeric_limits<double>::max();
+        // Nearest distance to border geometry
+        double radius = std::numeric_limits<double>::max();
         for (const Polyline& edge : m_geometry.getEdges()) {
-            circumradius =
-                std::min(circumradius, MathUtils::nearestPointOnSegment(edge.first(), edge.last(), p).second);
+            radius = std::min(radius, MathUtils::nearestPointOnSegment(edge.first(), edge.last(), p).second);
         }
-
-        // Append node with bead width to discretized nodes
-        nodes.append(qMakePair(p, circumradius * 2.0)); // Bead width is twice the circumradius
+        pts.push_back(p);
+        bw.push_back(radius * 2.0); // Bead width = 2 * radius
     }
-    nodes.last().first = end; // Ensure last node matches end point
+    pts.back() = end; // Exact end-point
 
-    // Initialize vector to store subsegments with adapted bead widths
-    QVector<QSharedPointer<LineSegment>> subsegments;
-    subsegments.reserve(steps);
+    // Helper lambda to create a subsegment with adapted settings
+    auto createSubsegment = [&](size_t start_idx, size_t end_idx) {
+        const double width =
+            std::clamp(std::min(bw[start_idx](), bw[end_idx]()), 1e-9, std::numeric_limits<double>::max());
+        const double speed = std::max(speed_factor / width, min_speed);
 
-    // Define consolidation tolerance based on reference bead width
-    Distance consolidation_tolerance = ref_width / 100.0; // 1% of reference bead width
+        // Create the subsegment and apply adapted settings
+        SegmentPtr segment = SegmentPtr::create(pts[start_idx], pts[end_idx]);
+        populateSegmentSettings(segment->getSb(), sb, true, width, speed);
 
-    // Combine consecutive nodes into larger segments based on consolidation tolerance
-    int subsegment_start_index = 0;
-    for (int i = 1; i <= steps; ++i) {
-        const Distance& start_width = nodes[subsegment_start_index].second;
-        const Distance& end_width = nodes[i].second;
+        return segment;
+    };
 
-        // Check if bead width changes beyond the tolerance
-        if (std::abs(end_width() - start_width()) > consolidation_tolerance()) {
-            // Adjust bead width and speed
-            Distance adjusted_width = std::min(start_width, end_width);
-            adjusted_width = adjusted_width == 0 ? ref_width : adjusted_width;
-            Velocity adjusted_speed = std::max(speed_factor / adjusted_width(),
-                                               ref_speed() / 100.0); // Clamp adjusted speed to 1% of reference speed
-
-            // Create and store the subsegment
-            auto subsegment = QSharedPointer<LineSegment>::create(nodes[subsegment_start_index].first, nodes[i].first);
-            subsegment->getSb()->setSetting(Constants::SegmentSettings::kWidth, adjusted_width);
-            subsegment->getSb()->setSetting(Constants::SegmentSettings::kSpeed, adjusted_speed);
-            subsegments.append(subsegment);
-
-            // Update the start index for the next subsegment
-            subsegment_start_index = i;
+    // Create and consolidate subsegments
+    size_t start_idx = 0;
+    for (size_t end_idx = 1; end_idx <= steps; ++end_idx) {
+        const bool boundary = std::fabs(bw[end_idx]() - bw[start_idx]()) > tol;
+        const bool last = (end_idx == steps);
+        if (boundary || last) {
+            segments.append(createSubsegment(start_idx, end_idx));
+            start_idx = end_idx;
         }
     }
 
-    // Handle the last subsegment if it hasn't been added yet
-    if (subsegment_start_index < steps) {
-        const Distance& start_width = nodes[subsegment_start_index].second;
-        const Distance& end_width = nodes.last().second;
-
-        // Adjust bead width and speed
-        Distance adjusted_width = std::min(start_width, end_width);
-        adjusted_width = (adjusted_width == 0) ? ref_width : adjusted_width;
-        Velocity adjusted_speed = std::max(speed_factor / adjusted_width(),
-                                           ref_speed() / 100.0); // Clamp adjusted speed to 1% of reference speed
-
-        // Create and store the last subsegment
-        auto subsegment = QSharedPointer<LineSegment>::create(nodes[subsegment_start_index].first, nodes.last().first);
-        subsegment->getSb()->setSetting(Constants::SegmentSettings::kWidth, adjusted_width);
-        subsegment->getSb()->setSetting(Constants::SegmentSettings::kSpeed, adjusted_speed);
-        subsegments.append(subsegment);
-    }
-
-    return subsegments;
-}
-
-QSharedPointer<LineSegment> Skeleton::createSegment(const Point& start, const Point& end,
-                                                    const QSharedPointer<SettingsBase>& sb) {
-    QSharedPointer<LineSegment> segment = QSharedPointer<LineSegment>::create(start, end);
-
-    segment->getSb()->setSetting(Constants::SegmentSettings::kWidth,
-                                 sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kBeadWidth));
-    segment->getSb()->setSetting(Constants::SegmentSettings::kSpeed,
-                                 sb->setting<Velocity>(Constants::ProfileSettings::Skeleton::kSpeed));
-    segment->getSb()->setSetting(Constants::SegmentSettings::kHeight,
-                                 sb->setting<Distance>(Constants::ProfileSettings::Layer::kLayerHeight));
-    segment->getSb()->setSetting(Constants::SegmentSettings::kAccel,
-                                 sb->setting<Acceleration>(Constants::PrinterSettings::Acceleration::kSkeleton));
-    segment->getSb()->setSetting(Constants::SegmentSettings::kExtruderSpeed,
-                                 sb->setting<AngularVelocity>(Constants::ProfileSettings::Skeleton::kExtruderSpeed));
-    segment->getSb()->setSetting(Constants::SegmentSettings::kMaterialNumber,
-                                 sb->setting<int>(Constants::MaterialSettings::MultiMaterial::kPerimterNum));
-    segment->getSb()->setSetting(Constants::SegmentSettings::kRegionType, RegionType::kSkeleton);
-
-    return segment;
+    return segments;
 }
 
 Path Skeleton::createPath(Polyline line) {
-    Path path;
+    // ---------- No Settings Regions ----------
+    if (m_settings_polygons.isEmpty()) {
+        Path path;
 
-    if (m_sb->setting<bool>(Constants::ProfileSettings::Skeleton::kSkeletonAdapt)) {
-        path = createAdaptivePath(line);
-    }
-    else if (!m_settings_polygons.isEmpty()) {
-        path = createRegionalPath(line);
-    }
-    else {
-        for (uint i = 0, end = line.size() - 1; i < end; ++i) {
-            QSharedPointer<LineSegment> segment = createSegment(line[i], line[i + 1], m_sb);
-            path.append(segment);
+        for (size_t i = 0; i < line.size() - 1; ++i) {
+            for (const SegmentPtr& segment : createSegments(line[i], line[i + 1], m_sb)) {
+                path.append(segment);
+            }
         }
+        return path;
     }
 
-    return path;
+    // ---------- Settings Regions ----------
+    return createPathWithLocalizedSettings(line);
 }
 
-Path Skeleton::createRegionalPath(const Polyline& line) {
+Path Skeleton::createPathWithLocalizedSettings(const Polyline& line) {
     Path path;
 
     // Iterate through each segment of the polyline
     for (size_t i = 0; i + 1 < line.size(); ++i) {
-        const Point start = line[i];
-        const Point end = line[i + 1];
+        const Point& start = line[i];
+        const Point& end = line[i + 1];
 
         // Clip the segment against the settings polygons
         QVector<Point> cuts;
@@ -849,87 +774,36 @@ Path Skeleton::createRegionalPath(const Polyline& line) {
 
         // Assemble subsegments from the points and apply regional settings
         for (size_t j = 0; j + 1 < points.size(); ++j) {
-            const Point p0 = points[j];
-            const Point p1 = points[j + 1];
-
-            // Compute the midpoint of the subsegment to determine which regional settings to apply
-            const Point midpoint = (p0 + p1) * 0.5;
+            const Point& p0 = points[j];
+            const Point& p1 = points[j + 1];
+            const Point mid = (p0 + p1) * 0.5;
 
             // Assign the subsegment default settings from the main settings base
             QSharedPointer<SettingsBase> segment_sb = QSharedPointer<SettingsBase>::create(*m_sb);
 
             // Populate the subsegment settings with local settings
             for (const SettingsPolygon& polygon : m_settings_polygons) {
-                if (polygon.inside(midpoint)) {
+                if (polygon.inside(mid)) {
                     segment_sb->populate(polygon.getSettings());
                     break;
                 }
             }
 
-            path.append(createSegment(p0, p1, segment_sb));
-        }
-    }
-
-    return path;
-}
-
-Path Skeleton::createAdaptivePath(Polyline line) {
-    // Exit early if adaptive step size is less than or equal to zero
-    if (m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kSkeletonAdaptStepSize) <= 0) {
-        qWarning() << "Skeleton adaptive step size must be greater than zero.";
-        return Path();
-    }
-
-    const Distance& height = m_sb->setting<Distance>(Constants::ProfileSettings::Layer::kLayerHeight);
-    const Acceleration& acceleration = m_sb->setting<Acceleration>(Constants::PrinterSettings::Acceleration::kSkeleton);
-    const AngularVelocity& extruder_speed =
-        m_sb->setting<AngularVelocity>(Constants::ProfileSettings::Skeleton::kExtruderSpeed);
-    const int& material_number = m_sb->setting<int>(Constants::MaterialSettings::MultiMaterial::kPerimterNum);
-
-    Path path;
-
-    for (uint i = 0, end = line.size() - 1; i < end; ++i) {
-        QVector<QSharedPointer<LineSegment>> segments;
-
-        segments = adaptBeadWidth(line[i], line[i + 1]);
-
-        for (QSharedPointer<LineSegment>& segment : segments) {
-            segment->getSb()->setSetting(Constants::SegmentSettings::kHeight, height);
-            segment->getSb()->setSetting(Constants::SegmentSettings::kAccel, acceleration);
-            segment->getSb()->setSetting(Constants::SegmentSettings::kExtruderSpeed, extruder_speed);
-            segment->getSb()->setSetting(Constants::SegmentSettings::kMaterialNumber, material_number);
-            segment->getSb()->setSetting(Constants::SegmentSettings::kRegionType, RegionType::kSkeleton);
-
-            if (m_computed_anchor_lines.size() != 0) {
-                segment->getSb()->setSetting(Constants::SegmentSettings::kWireFeed, true);
+            for (const SegmentPtr& segment : createSegments(p0, p1, segment_sb)) {
+                path.append(segment);
             }
-
-            path.append(segment);
         }
     }
 
     return path;
 }
 
-QVector<Path> Skeleton::filterPath(Path& path) {
-    // Retrieve adaptive settings
-    const bool& adaptive = m_sb->setting<bool>(Constants::ProfileSettings::Skeleton::kSkeletonAdapt);
-
-    // Initialize filtered path and paths
-    Path filtered_path;
+QVector<Path> Skeleton::filterPath(const Path& path) {
     QVector<Path> filtered_paths;
+    Path filtered_path;
 
-    // Lambda function for adding segments to filtered path
-    auto addSegment = [&filtered_path](const QSharedPointer<SegmentBase>& segment, const Distance& width,
-                                       const Velocity& speed) {
-        segment->getSb()->setSetting(Constants::SegmentSettings::kWidth, width);
-        segment->getSb()->setSetting(Constants::SegmentSettings::kSpeed, speed);
-        filtered_path.append(segment);
-    };
-
-    // Lambda function for adding filtered path to filtered paths
-    // Ensures that only non-empty paths are added and that closed paths have their orientation set
-    auto addPath = [&filtered_paths](Path& filtered_path) {
+    // Helper lambda to flush the current filtered path
+    auto flushPath = [&]() {
         if (filtered_path.size() > 0) {
             if (filtered_path.isClosed()) {
                 filtered_path.setCCW(Polygon(filtered_path).orientation());
@@ -939,60 +813,54 @@ QVector<Path> Skeleton::filterPath(Path& path) {
         }
     };
 
-    // Filter path based on adaptive settings.
-    if (!adaptive) {
-        addPath(path); // No filtering required for static bead width
-    }
-    else {
-        // Retrieve relevant settings
-        const Distance& reference_width = m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kBeadWidth);
-        const Velocity& reference_speed = m_sb->setting<Velocity>(Constants::ProfileSettings::Skeleton::kSpeed);
-        const Distance& min_width =
-            m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kSkeletonAdaptMinWidth);
-        const Distance& max_width =
-            m_sb->setting<Distance>(Constants::ProfileSettings::Skeleton::kSkeletonAdaptMaxWidth);
-        const SkeletonFilter& min_width_filter =
-            m_sb->setting<SkeletonFilter>(Constants::ProfileSettings::Skeleton::kSkeletonAdaptMinWidthFilter);
-        const SkeletonFilter& max_width_filter =
-            m_sb->setting<SkeletonFilter>(Constants::ProfileSettings::Skeleton::kSkeletonAdaptMaxWidthFilter);
+    // Filter each segment in the path
+    for (const auto& segment : path) {
+        auto segment_sb = segment->getSb();
 
-        // Compute adapted speed limits based on reference speed and width
-        Velocity min_speed = (reference_speed() * reference_width()) / min_width();
-        Velocity max_speed = (reference_speed() * reference_width()) / max_width();
-
-        for (QSharedPointer<SegmentBase>& segment : path) {
-            // Retrieve segment width
-            const Distance& width = segment->getSb()->setting<Distance>(Constants::SegmentSettings::kWidth);
-            const Velocity& speed = segment->getSb()->setting<Velocity>(Constants::SegmentSettings::kSpeed);
-
-            // If width is within bounds, add segment to filtered path
-            if (width >= min_width && width <= max_width) {
-                addSegment(segment, width, speed);
-            }
-            // If width is below minimum, clamp or prune segment
-            else if (width < min_width) {
-                if (min_width_filter == SkeletonFilter::kClamp) {
-                    addSegment(segment, min_width, min_speed);
-                }
-                else { // Prune
-                    addPath(filtered_path);
-                }
-            }
-            // If width is above maximum, clamp or prune segment
-            else {
-                if (max_width_filter == SkeletonFilter::kClamp) {
-                    addSegment(segment, max_width, max_speed);
-                }
-                else { // Prune
-                    addPath(filtered_path);
-                }
-            }
+        // If the segment is not adapted, simply append it to the filtered path
+        if (!segment_sb->setting<bool>(SS::kAdapted)) {
+            filtered_path.append(segment);
+            continue;
         }
 
-        // Add the last filtered path to the list of filtered paths
-        addPath(filtered_path);
+        // Retrieve adapted width limits
+        const Distance min_width = segment_sb->setting<Distance>(PS::Skeleton::kSkeletonAdaptMinWidth);
+        const Distance max_width = segment_sb->setting<Distance>(PS::Skeleton::kSkeletonAdaptMaxWidth);
+
+        // Compute adapted speed limits based on min/max widths
+        const Distance ref_width = segment_sb->setting<Distance>(PS::Skeleton::kBeadWidth);
+        const Velocity ref_speed = segment_sb->setting<Velocity>(PS::Skeleton::kSpeed);
+        const double speed_factor = ref_speed() * ref_width(); // Inverse-proportional speed factor
+        const Velocity min_speed = speed_factor / min_width();
+        const Velocity max_speed = speed_factor / max_width();
+
+        // Retrieve the segment's width and filters
+        const Distance width = segment_sb->setting<Distance>(SS::kWidth);
+        const SkeletonFilter min_filter =
+            segment_sb->setting<SkeletonFilter>(PS::Skeleton::kSkeletonAdaptMinWidthFilter);
+        const SkeletonFilter max_filter =
+            segment_sb->setting<SkeletonFilter>(PS::Skeleton::kSkeletonAdaptMaxWidthFilter);
+
+        // Apply filtering logic
+        if (width >= min_width && width <= max_width) { // Within bounds
+            filtered_path.append(segment);
+        }
+        else if (width < min_width && min_filter == SkeletonFilter::kClamp) { // Below minimum width
+            segment_sb->setSetting(SS::kWidth, min_width);
+            segment_sb->setSetting(SS::kSpeed, min_speed);
+            filtered_path.append(segment);
+        }
+        else if (width > max_width && max_filter == SkeletonFilter::kClamp) { // Above maximum width
+            segment_sb->setSetting(SS::kWidth, max_width);
+            segment_sb->setSetting(SS::kSpeed, max_speed);
+            filtered_path.append(segment);
+        }
+        else { // Outside bounds and not clamped
+            flushPath();
+        }
     }
 
+    flushPath(); // Push any trailing path
     return filtered_paths;
 }
 
@@ -1002,21 +870,21 @@ void Skeleton::optimize(int layerNumber, Point& current_location, QVector<Path>&
                         QVector<Path>& outerMostClosedContour, bool& shouldNextPathBeCCW) {
     PolylineOrderOptimizer poo(current_location, layerNumber);
 
-    PathOrderOptimization pathOrderOptimization = static_cast<PathOrderOptimization>(
-        this->getSb()->setting<int>(Constants::ProfileSettings::Optimizations::kPathOrder));
+    PathOrderOptimization pathOrderOptimization =
+        static_cast<PathOrderOptimization>(this->getSb()->setting<int>(PS::Optimizations::kPathOrder));
     if (pathOrderOptimization == PathOrderOptimization::kCustomPoint) {
-        Point startOverride(getSb()->setting<double>(Constants::ProfileSettings::Optimizations::kCustomPathXLocation),
-                            getSb()->setting<double>(Constants::ProfileSettings::Optimizations::kCustomPathYLocation));
+        Point startOverride(getSb()->setting<double>(PS::Optimizations::kCustomPathXLocation),
+                            getSb()->setting<double>(PS::Optimizations::kCustomPathYLocation));
 
         poo.setStartOverride(startOverride);
     }
 
-    PointOrderOptimization pointOrderOptimization = static_cast<PointOrderOptimization>(
-        this->getSb()->setting<int>(Constants::ProfileSettings::Optimizations::kPointOrder));
+    PointOrderOptimization pointOrderOptimization =
+        static_cast<PointOrderOptimization>(this->getSb()->setting<int>(PS::Optimizations::kPointOrder));
 
     if (pointOrderOptimization == PointOrderOptimization::kCustomPoint) {
-        Point startOverride(getSb()->setting<double>(Constants::ProfileSettings::Optimizations::kCustomPointXLocation),
-                            getSb()->setting<double>(Constants::ProfileSettings::Optimizations::kCustomPointYLocation));
+        Point startOverride(getSb()->setting<double>(PS::Optimizations::kCustomPointXLocation),
+                            getSb()->setting<double>(PS::Optimizations::kCustomPointYLocation));
 
         poo.setStartPointOverride(startOverride);
     }
@@ -1040,29 +908,26 @@ void Skeleton::optimize(int layerNumber, Point& current_location, QVector<Path>&
         m_computed_geometry = containedPaths;
     }
 
-    poo.setPointParameters(
-        pointOrderOptimization, getSb()->setting<bool>(Constants::ProfileSettings::Optimizations::kMinDistanceEnabled),
-        getSb()->setting<Distance>(Constants::ProfileSettings::Optimizations::kMinDistanceThreshold),
-        getSb()->setting<Distance>(Constants::ProfileSettings::Optimizations::kConsecutiveDistanceThreshold),
-        getSb()->setting<bool>(Constants::ProfileSettings::Optimizations::kLocalRandomnessEnable),
-        getSb()->setting<Distance>(Constants::ProfileSettings::Optimizations::kLocalRandomnessRadius));
+    poo.setPointParameters(pointOrderOptimization, getSb()->setting<bool>(PS::Optimizations::kMinDistanceEnabled),
+                           getSb()->setting<Distance>(PS::Optimizations::kMinDistanceThreshold),
+                           getSb()->setting<Distance>(PS::Optimizations::kConsecutiveDistanceThreshold),
+                           getSb()->setting<bool>(PS::Optimizations::kLocalRandomnessEnable),
+                           getSb()->setting<Distance>(PS::Optimizations::kLocalRandomnessRadius));
 
-    poo.setGeometryToEvaluate(
-        m_computed_geometry, RegionType::kSkeleton,
-        static_cast<PathOrderOptimization>(m_sb->setting<int>(Constants::ProfileSettings::Optimizations::kPathOrder)));
+    poo.setGeometryToEvaluate(m_computed_geometry, RegionType::kSkeleton,
+                              static_cast<PathOrderOptimization>(m_sb->setting<int>(PS::Optimizations::kPathOrder)));
 
     while (poo.getCurrentPolylineCount() > 0) {
         Polyline result = poo.linkNextPolyline();
         if (result.size() > 0) {
-            Path newPath = createPath(result);
-            QVector<Path> paths = filterPath(newPath);
+            QVector<Path> paths = filterPath(createPath(result));
+
             if (paths.size() > 0) {
                 for (Path path : paths) {
                     QVector<Path> temp_path;
-                    calculateModifiers(path, m_sb->setting<bool>(Constants::PrinterSettings::MachineSetup::kSupportG3),
-                                       temp_path);
-                    PathModifierGenerator::GenerateTravel(
-                        path, current_location, m_sb->setting<Velocity>(Constants::ProfileSettings::Travel::kSpeed));
+                    calculateModifiers(path, m_sb->setting<bool>(PRS::MachineSetup::kSupportG3), temp_path);
+                    PathModifierGenerator::GenerateTravel(path, current_location,
+                                                          m_sb->setting<Velocity>(PS::Travel::kSpeed));
                     current_location = path.back()->end();
                     m_paths.push_back(path);
                 }
@@ -1072,75 +937,66 @@ void Skeleton::optimize(int layerNumber, Point& current_location, QVector<Path>&
 }
 
 void Skeleton::calculateModifiers(Path& path, bool supportsG3, QVector<Path>& innerMostClosedContour) {
-    if (m_sb->setting<bool>(Constants::ExperimentalSettings::Ramping::kTrajectoryAngleEnabled)) {
+    // Ramping
+    if (m_sb->setting<bool>(ES::Ramping::kTrajectoryAngleEnabled)) {
         PathModifierGenerator::GenerateTrajectorySlowdown(path, m_sb);
     }
 
-    if (m_sb->setting<bool>(Constants::MaterialSettings::Slowdown::kSkeletonEnable)) {
-        PathModifierGenerator::GenerateSlowdown(
-            path, m_sb->setting<Distance>(Constants::MaterialSettings::Slowdown::kSkeletonDistance),
-            m_sb->setting<Distance>(Constants::MaterialSettings::Slowdown::kSkeletonLiftDistance),
-            m_sb->setting<Distance>(Constants::MaterialSettings::Slowdown::kSkeletonCutoffDistance),
-            m_sb->setting<Velocity>(Constants::MaterialSettings::Slowdown::kSkeletonSpeed),
-            m_sb->setting<AngularVelocity>(Constants::MaterialSettings::Slowdown::kSkeletonExtruderSpeed),
-            m_sb->setting<bool>(Constants::ProfileSettings::SpecialModes::kEnableWidthHeight),
-            m_sb->setting<double>(Constants::MaterialSettings::Slowdown::kSlowDownAreaModifier));
+    // Slowdown
+    if (m_sb->setting<bool>(MS::Slowdown::kSkeletonEnable)) {
+        PathModifierGenerator::GenerateSlowdown(path, m_sb->setting<Distance>(MS::Slowdown::kSkeletonDistance),
+                                                m_sb->setting<Distance>(MS::Slowdown::kSkeletonLiftDistance),
+                                                m_sb->setting<Distance>(MS::Slowdown::kSkeletonCutoffDistance),
+                                                m_sb->setting<Velocity>(MS::Slowdown::kSkeletonSpeed),
+                                                m_sb->setting<AngularVelocity>(MS::Slowdown::kSkeletonExtruderSpeed),
+                                                m_sb->setting<bool>(PS::SpecialModes::kEnableWidthHeight),
+                                                m_sb->setting<double>(MS::Slowdown::kSlowDownAreaModifier));
     }
 
-    if (m_sb->setting<bool>(Constants::MaterialSettings::TipWipe::kSkeletonEnable)) {
-        if (static_cast<TipWipeDirection>(m_sb->setting<int>(
-                Constants::MaterialSettings::TipWipe::kSkeletonDirection)) == TipWipeDirection::kForward ||
-            static_cast<TipWipeDirection>(m_sb->setting<int>(
-                Constants::MaterialSettings::TipWipe::kSkeletonDirection)) == TipWipeDirection::kOptimal)
-            PathModifierGenerator::GenerateForwardTipWipeOpenLoop(
-                path, PathModifiers::kForwardTipWipe,
-                m_sb->setting<Distance>(Constants::MaterialSettings::TipWipe::kSkeletonDistance),
-                m_sb->setting<Velocity>(Constants::MaterialSettings::TipWipe::kSkeletonSpeed),
-                m_sb->setting<AngularVelocity>(Constants::MaterialSettings::TipWipe::kSkeletonExtruderSpeed),
-                m_sb->setting<Distance>(Constants::MaterialSettings::TipWipe::kSkeletonLiftHeight),
-                m_sb->setting<Distance>(Constants::MaterialSettings::TipWipe::kSkeletonCutoffDistance));
-        else if (static_cast<TipWipeDirection>(m_sb->setting<int>(
-                     Constants::MaterialSettings::TipWipe::kSkeletonDirection)) == TipWipeDirection::kAngled) {
-            PathModifierGenerator::GenerateTipWipe(
-                path, PathModifiers::kAngledTipWipe,
-                m_sb->setting<Distance>(Constants::MaterialSettings::TipWipe::kSkeletonDistance),
-                m_sb->setting<Velocity>(Constants::MaterialSettings::TipWipe::kSkeletonSpeed),
-                m_sb->setting<Angle>(Constants::MaterialSettings::TipWipe::kSkeletonAngle),
-                m_sb->setting<AngularVelocity>(Constants::MaterialSettings::TipWipe::kSkeletonExtruderSpeed),
-                m_sb->setting<Distance>(Constants::MaterialSettings::TipWipe::kSkeletonLiftHeight),
-                m_sb->setting<Distance>(Constants::MaterialSettings::TipWipe::kSkeletonCutoffDistance));
+    // Tip Wipe
+    if (m_sb->setting<bool>(MS::TipWipe::kSkeletonEnable)) {
+        const auto& tw_direction = static_cast<TipWipeDirection>(m_sb->setting<int>(MS::TipWipe::kSkeletonDirection));
+        const auto& tw_distance = m_sb->setting<Distance>(MS::TipWipe::kSkeletonDistance);
+        const auto& tw_speed = m_sb->setting<Velocity>(MS::TipWipe::kSkeletonSpeed);
+        const auto& tw_extruder_speed = m_sb->setting<AngularVelocity>(MS::TipWipe::kSkeletonExtruderSpeed);
+        const auto& tw_angle = m_sb->setting<Angle>(MS::TipWipe::kSkeletonAngle);
+        const auto& tw_lift_height = m_sb->setting<Distance>(MS::TipWipe::kSkeletonLiftHeight);
+        const auto& tw_cutoff_distance = m_sb->setting<Distance>(MS::TipWipe::kSkeletonCutoffDistance);
+
+        if (tw_direction == TipWipeDirection::kForward || tw_direction == TipWipeDirection::kOptimal) {
+            PathModifierGenerator::GenerateForwardTipWipeOpenLoop(path, PathModifiers::kForwardTipWipe, tw_distance,
+                                                                  tw_speed, tw_extruder_speed, tw_lift_height,
+                                                                  tw_cutoff_distance);
+        }
+        else if (tw_direction == TipWipeDirection::kAngled) {
+            PathModifierGenerator::GenerateTipWipe(path, PathModifiers::kAngledTipWipe, tw_distance, tw_speed, tw_angle,
+                                                   tw_extruder_speed, tw_lift_height, tw_cutoff_distance);
         }
         else {
-            PathModifierGenerator::GenerateTipWipe(
-                path, PathModifiers::kReverseTipWipe,
-                m_sb->setting<Distance>(Constants::MaterialSettings::TipWipe::kSkeletonDistance),
-                m_sb->setting<Velocity>(Constants::MaterialSettings::TipWipe::kSkeletonSpeed),
-                m_sb->setting<Angle>(Constants::MaterialSettings::TipWipe::kSkeletonAngle),
-                m_sb->setting<AngularVelocity>(Constants::MaterialSettings::TipWipe::kSkeletonExtruderSpeed),
-                m_sb->setting<Distance>(Constants::MaterialSettings::TipWipe::kSkeletonLiftHeight),
-                m_sb->setting<Distance>(Constants::MaterialSettings::TipWipe::kSkeletonCutoffDistance));
+            PathModifierGenerator::GenerateTipWipe(path, PathModifiers::kReverseTipWipe, tw_distance, tw_speed,
+                                                   tw_angle, tw_extruder_speed, tw_lift_height, tw_cutoff_distance);
         }
     }
 
-    if (m_sb->setting<bool>(Constants::MaterialSettings::Startup::kSkeletonEnable)) {
-        if (m_sb->setting<bool>(Constants::MaterialSettings::Startup::kSkeletonRampUpEnable)) {
-            PathModifierGenerator::GenerateInitialStartupWithRampUp(
-                path, m_sb->setting<Distance>(Constants::MaterialSettings::Startup::kSkeletonDistance),
-                m_sb->setting<Velocity>(Constants::MaterialSettings::Startup::kSkeletonSpeed),
-                m_sb->setting<Velocity>(Constants::ProfileSettings::Skeleton::kSpeed),
-                m_sb->setting<AngularVelocity>(Constants::MaterialSettings::Startup::kSkeletonExtruderSpeed),
-                m_sb->setting<AngularVelocity>(Constants::ProfileSettings::Skeleton::kExtruderSpeed),
-                m_sb->setting<int>(Constants::MaterialSettings::Startup::kSkeletonSteps),
-                m_sb->setting<bool>(Constants::ProfileSettings::SpecialModes::kEnableWidthHeight),
-                m_sb->setting<double>(Constants::MaterialSettings::Startup::kStartUpAreaModifier));
+    // Startup
+    if (m_sb->setting<bool>(MS::Startup::kSkeletonEnable)) {
+        const auto& su_distance = m_sb->setting<Distance>(MS::Startup::kSkeletonDistance);
+        const auto& su_speed = m_sb->setting<Velocity>(MS::Startup::kSkeletonSpeed);
+        const auto& speed = m_sb->setting<Velocity>(PS::Skeleton::kSpeed);
+        const auto& su_extruder_speed = m_sb->setting<AngularVelocity>(MS::Startup::kSkeletonExtruderSpeed);
+        const auto& extruder_speed = m_sb->setting<AngularVelocity>(PS::Skeleton::kExtruderSpeed);
+        const auto& su_steps = m_sb->setting<int>(MS::Startup::kSkeletonSteps);
+        const auto& sm_enable_width_height = m_sb->setting<bool>(PS::SpecialModes::kEnableWidthHeight);
+        const auto& su_area_modifier = m_sb->setting<double>(MS::Startup::kStartUpAreaModifier);
+
+        if (m_sb->setting<bool>(MS::Startup::kSkeletonRampUpEnable)) {
+            PathModifierGenerator::GenerateInitialStartupWithRampUp(path, su_distance, su_speed, speed,
+                                                                    su_extruder_speed, extruder_speed, su_steps,
+                                                                    sm_enable_width_height, su_area_modifier);
         }
         else {
-            PathModifierGenerator::GenerateInitialStartup(
-                path, m_sb->setting<Distance>(Constants::MaterialSettings::Startup::kSkeletonDistance),
-                m_sb->setting<Velocity>(Constants::MaterialSettings::Startup::kSkeletonSpeed),
-                m_sb->setting<AngularVelocity>(Constants::MaterialSettings::Startup::kSkeletonExtruderSpeed),
-                m_sb->setting<bool>(Constants::ProfileSettings::SpecialModes::kEnableWidthHeight),
-                m_sb->setting<double>(Constants::MaterialSettings::Startup::kStartUpAreaModifier));
+            PathModifierGenerator::GenerateInitialStartup(path, su_distance, su_speed, su_extruder_speed,
+                                                          sm_enable_width_height, su_area_modifier);
         }
     }
 }

@@ -1,39 +1,35 @@
-#ifndef SKELETON_H
-#define SKELETON_H
+#pragma once
 
-// Local
-#include "geometry/segments/line.h"
-#include "step/layer/regions/region_base.h"
-
-// System
-#include <QStack>
-
-// Boost
+#include "QStack"
 #include "boost/graph/adjacency_list.hpp"
 #include "boost/graph/connected_components.hpp"
 #include "boost/graph/filtered_graph.hpp"
 #include "boost/graph/graph_traits.hpp"
 #include "boost/graph/subgraph.hpp"
 #include "boost/property_map/property_map.hpp"
+#include "geometry/segments/line.h"
+#include "step/layer/regions/region_base.h"
 
 namespace ORNL {
-typedef boost::adjacency_list<boost::listS, boost::listS, boost::undirectedS, Point, Polyline> SkeletonGraph;
-typedef boost::graph_traits<SkeletonGraph>::vertex_descriptor SkeletonVertex;
-typedef boost::graph_traits<SkeletonGraph>::vertex_iterator Vertex_Iter;
-typedef boost::graph_traits<SkeletonGraph>::edge_descriptor Edge;
-typedef boost::graph_traits<SkeletonGraph>::out_edge_iterator Out_Edge_Iter;
+using SkeletonGraph = boost::adjacency_list<boost::listS, boost::listS, boost::undirectedS, Point, Polyline>;
+using SkeletonVertex = boost::graph_traits<SkeletonGraph>::vertex_descriptor;
+using SkeletonEdge = boost::graph_traits<SkeletonGraph>::edge_descriptor;
 
-struct subgraph_filter {
-    subgraph_filter() = default;
+struct SkeletonSubgraphFilter {
+    SkeletonSubgraphFilter() = default;
 
-    subgraph_filter(QMap<SkeletonVertex, int> vertex_subgraph_map_) : vertex_subgraph_map(vertex_subgraph_map_) {}
+    SkeletonSubgraphFilter(QMap<SkeletonVertex, int> vertex_subgraph_map_)
+        : vertex_subgraph_map(vertex_subgraph_map_) {}
 
     bool operator()(const SkeletonVertex& v) const { return vertex_subgraph_map[v] == 0; }
 
     QMap<SkeletonVertex, int> vertex_subgraph_map;
 };
 
-typedef boost::filtered_graph<SkeletonGraph, boost::keep_all, subgraph_filter> SubGraph;
+using SkeletonSubgraph = boost::filtered_graph<SkeletonGraph, boost::keep_all, SkeletonSubgraphFilter>;
+
+using SegmentPtr = QSharedPointer<LineSegment>;
+using SegmentList = QVector<SegmentPtr>;
 
 class Skeleton : public RegionBase {
   public:
@@ -84,11 +80,7 @@ class Skeleton : public RegionBase {
     //! \brief Extracts passed path from m_skeleton_graph
     //! \param path is the computed skeleton path to be extracted from the skeleton graph and placed in
     //! m_computed_geometry
-    void extractPath(QVector<Edge> path);
-
-    //! \brief Quick, unoptimized extraction of paths from m_skeleton_graph.
-    //! Can be used in place of extractSkeletonPaths().
-    void getSkeleton();
+    void extractPath(QVector<SkeletonEdge> path);
 
     /*!
      * \brief Used for internal inspection of skeleton structure contained in m_computed_geometry.
@@ -136,15 +128,6 @@ class Skeleton : public RegionBase {
      */
     void inspectSkeletonGraph();
 
-    /*!
-     * \brief Adapts skeleton beadWidth to fill remaining area.
-     * Assumes skeleton beadWidth cannot be adapted to more than 1.9 times avgBeadWidth
-     * \param start: start of skeleton segment to be adapted
-     * \param end: end of skeleton segment to be adapted
-     * \return Returns a vector of skeleton segments with adapted beadWidths expressed by their speed
-     */
-    QVector<QSharedPointer<LineSegment>> adaptBeadWidth(const Point& start, const Point& end);
-
     //! \brief Optimizes the region.
     //! \param layerNumber: current layer number
     //! \param innerMostClosedContour: used for subsequent path modifiers
@@ -155,47 +138,48 @@ class Skeleton : public RegionBase {
                   QVector<Path>& outerMostClosedContour, bool& shouldNextPathBeCCW) override;
 
     /**
-     * @brief Creates a Skeleton segment.
-     * @param[in] start Start point of the segment.
-     * @param[in] end End point of the segment.
-     * @param[in] sb Settings base for the segment.
-     * @return A shared pointer to the created segment.
+     * @brief Populates the segment settings with local settings.
+     * @param[in,out] segment_sb: The segment settings base to populate.
+     * @param[in] sb: The settings base to apply.
+     * @param[in] adapted: Whether or not the segment is adapted.
+     * @param[in] adapted_width: The adapted width to apply if the segment is adapted.
+     * @param[in] adapted_speed: The adapted speed to apply if the segment is adapted.
+     * @note If adapted is true, adapted_width and adapted_speed must be provided.
      */
-    QSharedPointer<LineSegment> createSegment(const Point& start, const Point& end,
-                                              const QSharedPointer<SettingsBase>& sb);
+    static void populateSegmentSettings(QSharedPointer<SettingsBase> segment_sb, const QSharedPointer<SettingsBase>& sb,
+                                        bool adapted = false, const Distance& adapted_width = Distance(),
+                                        const Velocity& adapted_speed = Velocity());
 
     /**
-     * @brief Creates a Skeleton path.
-     * @param[in] line Polyline representing the path.
-     * @return Skeleton path.
+     * @brief Create segments from a start and end point with the given settings base.
+     * @param[in] start: The start point of the segment.
+     * @param[in] end: The end point of the segment.
+     * @param[in] sb: The settings base to apply to the segment.
+     * @return A list of segments created from the start and end points.
+     */
+    SegmentList createSegments(const Point& start, const Point& end, const QSharedPointer<SettingsBase>& sb) const;
+
+    /**
+     * @brief Create a path from a polyline.
+     * @param[in] line: The polyline representing the path.
+     * @return A path created from the polyline.
      */
     Path createPath(Polyline line) override;
 
     /**
-     * @brief Creates a path with regional settings applied.
+     * @brief Create a path with localized settings applied to segments based on settings regions.
      * @param[in] line Polyline representing the path.
-     * @return Path with regional settings applied.
-     * @warning Does not handle cases where multiple settings regions overlap and instead
-     * applies the first matching region's settings.
-     * @warning Cannot be used with adaptive bead width.
-     * @todo Handle cases where multiple settings regions overlap.
-     * @todo Handle adaptive bead width.
+     * @return Path with localized settings applied.
+     * @warning Handles cases of overlapping settings regions by applying the first region found.
      */
-    Path createRegionalPath(const Polyline& line);
+    Path createPathWithLocalizedSettings(const Polyline& line);
 
     /**
-     * @brief Creates a path with adaptive bead width.
-     * @param[in] line Polyline representing the path.
-     * @return Path with adaptive bead width applied.
-     * @throws std::invalid_argument if adaptive step size is less than or equal to zero.
+     * @brief Filter path segments based on bead width.
+     * @param[in] path: the path to be filtered.
+     * @return A vector of paths that have been filtered based on bead width.
      */
-    Path createAdaptivePath(Polyline line);
-
-    //! \brief Filters adapted paths by clamping or removing segments whose bead widths are not within the
-    //! allowable range.
-    //! \param path: the path to be filtered.
-    //! \return Returns a vector of paths with bead widths that are within the allowable range.
-    QVector<Path> filterPath(Path& path);
+    QVector<Path> filterPath(const Path& path);
 
     //! \brief Sets pathing for anchor lines
     //! \param anchor_lines: polylines for wire feed
@@ -224,5 +208,3 @@ class Skeleton : public RegionBase {
     QVector<Polyline> m_computed_anchor_lines;
 };
 } // namespace ORNL
-
-#endif // SKELETON_H
