@@ -28,9 +28,6 @@ struct SkeletonSubgraphFilter {
 
 using SkeletonSubgraph = boost::filtered_graph<SkeletonGraph, boost::keep_all, SkeletonSubgraphFilter>;
 
-using SegmentPtr = QSharedPointer<LineSegment>;
-using SegmentList = QVector<SegmentPtr>;
-
 class Skeleton : public RegionBase {
   public:
     //! \brief Constructor
@@ -157,7 +154,7 @@ class Skeleton : public RegionBase {
      * @param[in] sb: The settings base to apply to the segment.
      * @return A list of segments created from the start and end points.
      */
-    SegmentList createSegments(const Point& start, const Point& end, const QSharedPointer<SettingsBase>& sb) const;
+    LSegmentList createSegments(const Point& start, const Point& end, const QSharedPointer<SettingsBase>& sb) const;
 
     /**
      * @brief Create a path from a polyline.

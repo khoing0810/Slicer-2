@@ -532,7 +532,7 @@ const QString Constants::MaterialSettings::PlatformAdhesion::kSkirtBeadWidth = "
 
 // MultiMaterial
 const QString Constants::MaterialSettings::MultiMaterial::kEnable = "enable_multi_material";
-const QString Constants::MaterialSettings::MultiMaterial::kPerimterNum = "perimeter_material_num";
+const QString Constants::MaterialSettings::MultiMaterial::kPerimeterNum = "perimeter_material_num";
 const QString Constants::MaterialSettings::MultiMaterial::kInsetNum = "inset_material_num";
 const QString Constants::MaterialSettings::MultiMaterial::kSkinNum = "skin_material_num";
 const QString Constants::MaterialSettings::MultiMaterial::kInfillNum = "infill_material_num";

@@ -41,9 +41,9 @@ void Perimeter::compute(uint layer_num, QSharedPointer<SyncManager>& sync) {
     m_outer_most_path_set.clear();
     m_inner_most_path_set.clear();
 
-    setMaterialNumber(m_sb->setting<int>(Constants::MaterialSettings::MultiMaterial::kPerimterNum));
-    Distance beadWidth = m_sb->setting<Distance>(Constants::ProfileSettings::Perimeter::kBeadWidth);
-    int rings = m_sb->setting<int>(Constants::ProfileSettings::Perimeter::kCount);
+    setMaterialNumber(m_sb->setting<int>(MS::MultiMaterial::kPerimeterNum));
+    Distance beadWidth = m_sb->setting<Distance>(PS::Perimeter::kBeadWidth);
+    int rings = m_sb->setting<int>(PS::Perimeter::kCount);
 
     if (m_sb->setting<bool>(Constants::ExperimentalSettings::WireFeed::kWireFeedEnable) &&
         m_uncut_geometry != PolygonList() && rings == 3) {

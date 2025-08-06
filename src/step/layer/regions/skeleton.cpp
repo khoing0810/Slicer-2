@@ -34,12 +34,6 @@ template <> struct boost::polygon::segment_traits<ORNL::Polyline> {
 };
 
 namespace ORNL {
-using ES = Constants::ExperimentalSettings;
-using MS = Constants::MaterialSettings;
-using PS = Constants::ProfileSettings;
-using PRS = Constants::PrinterSettings;
-using SS = Constants::SegmentSettings;
-
 Skeleton::Skeleton(const QSharedPointer<SettingsBase>& sb, const int index,
                    const QVector<SettingsPolygon>& settings_polygons, const SingleExternalGridInfo& gridInfo,
                    bool isWireFed)
@@ -662,13 +656,13 @@ void Skeleton::populateSegmentSettings(QSharedPointer<SettingsBase> segment_sb, 
     segment_sb->setSetting(SS::kAdapted, adapted);
 }
 
-SegmentList Skeleton::createSegments(const Point& start, const Point& end,
-                                     const QSharedPointer<SettingsBase>& sb) const {
-    SegmentList segments;
+LSegmentList Skeleton::createSegments(const Point& start, const Point& end,
+                                      const QSharedPointer<SettingsBase>& sb) const {
+    LSegmentList segments;
 
     // ---------- Static bead width ----------
     if (!sb->setting<bool>(PS::Skeleton::kSkeletonAdapt)) {
-        SegmentPtr segment = SegmentPtr::create(start, end);
+        LSegmentPtr segment = LSegmentPtr::create(start, end);
         populateSegmentSettings(segment->getSb(), sb);
         segments.append(segment);
         return segments;
@@ -713,7 +707,7 @@ SegmentList Skeleton::createSegments(const Point& start, const Point& end,
         const double speed = std::max(speed_factor / width, min_speed);
 
         // Create the subsegment and apply adapted settings
-        SegmentPtr segment = SegmentPtr::create(pts[start_idx], pts[end_idx]);
+        LSegmentPtr segment = LSegmentPtr::create(pts[start_idx], pts[end_idx]);
         populateSegmentSettings(segment->getSb(), sb, true, width, speed);
 
         return segment;
@@ -739,7 +733,7 @@ Path Skeleton::createPath(Polyline line) {
         Path path;
 
         for (size_t i = 0; i < line.size() - 1; ++i) {
-            for (const SegmentPtr& segment : createSegments(line[i], line[i + 1], m_sb)) {
+            for (const LSegmentPtr& segment : createSegments(line[i], line[i + 1], m_sb)) {
                 path.append(segment);
             }
         }
@@ -789,7 +783,7 @@ Path Skeleton::createPathWithLocalizedSettings(const Polyline& line) {
                 }
             }
 
-            for (const SegmentPtr& segment : createSegments(p0, p1, segment_sb)) {
+            for (const LSegmentPtr& segment : createSegments(p0, p1, segment_sb)) {
                 path.append(segment);
             }
         }

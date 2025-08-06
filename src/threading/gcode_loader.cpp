@@ -1,6 +1,10 @@
-// Header
 #include "threading/gcode_loader.h"
 
+#include "QDebug"
+#include "QFile"
+#include "QFileInfo"
+#include "QStringBuilder"
+#include "QTextStream"
 #include "gcode/gcode_command.h"
 #include "gcode/gcode_meta.h"
 #include "gcode/parsers/GKN_parser.h"
@@ -23,12 +27,6 @@
 #include "managers/session_manager.h"
 #include "managers/settings/settings_manager.h"
 #include "utilities/mathutils.h"
-
-#include <QDebug>
-#include <QFile>
-#include <QFileInfo>
-#include <QStringBuilder>
-#include <QTextStream>
 
 namespace ORNL {
 GCodeLoader::GCodeLoader(QString filename, bool alterFile)
@@ -177,9 +175,8 @@ void GCodeLoader::sendGcodeModelObjFile(QString host, int port, QString machineN
 }
 
 void GCodeLoader::run() {
-    bool disableVisualization =
-        m_sb->setting<bool>(Constants::ExperimentalSettings::GcodeVisualization::kDisableVisualization);
-    int layerSkip = m_sb->setting<int>(Constants::ExperimentalSettings::GcodeVisualization::kVisualizationSkip);
+    bool disableVisualization = m_sb->setting<bool>(ES::GcodeVisualization::kDisableVisualization);
+    int layerSkip = m_sb->setting<int>(ES::GcodeVisualization::kVisualizationSkip);
 
     if (!m_filename.isEmpty() && (!disableVisualization || m_adjust_file)) {
         // Try-catch is necessary to prevent a crash when the GCode refresh button is clicked after an erroneous
@@ -248,12 +245,12 @@ void GCodeLoader::run() {
                     total_volume += layer_volumes[i];
                 }
 
-                PrintMaterial m_material = static_cast<PrintMaterial>(
-                    (int)visualizationSettings[Constants::MaterialSettings::Density::kMaterialType]);
+                PrintMaterial m_material =
+                    static_cast<PrintMaterial>((int)visualizationSettings[MS::Density::kMaterialType]);
 
-                Density materialDensity = ((m_material == PrintMaterial::kOther)
-                                               ? (visualizationSettings[Constants::MaterialSettings::Density::kDensity])
-                                               : toDensityValue(m_material));
+                Density materialDensity =
+                    ((m_material == PrintMaterial::kOther) ? (visualizationSettings[MS::Density::kDensity])
+                                                           : toDensityValue(m_material));
 
                 Mass total_mass = total_volume * materialDensity;
 
@@ -261,8 +258,7 @@ void GCodeLoader::run() {
                 emit forwardInfoToLayerTimeWindow(
                     layer_times, layer_FR_modifiers,
                     ForceMinimumLayerTime::kSlow_Feedrate ==
-                        static_cast<ForceMinimumLayerTime>(
-                            m_sb->setting<int>(Constants::MaterialSettings::Cooling::kForceMinLayerTimeMethod)));
+                        static_cast<ForceMinimumLayerTime>(m_sb->setting<int>(MS::Cooling::kForceMinLayerTimeMethod)));
 
                 weightInfo = QString::number((total_mass / m_selected_meta.m_mass_unit)()) % " " %
                              m_selected_meta.m_mass_unit.toString();
@@ -273,8 +269,7 @@ void GCodeLoader::run() {
                 QString keyInfo = "GCode file: " % m_filename % "\n" % "Total Time Estimate: " %
                                   MathUtils::formattedTimeSpan(total_time()) % "\n";
 
-                if (m_adjust_file && total_adjusted_time > 0 &&
-                    m_sb->setting<int>(Constants::MaterialSettings::Cooling::kForceMinLayerTime)) {
+                if (m_adjust_file && total_adjusted_time > 0 && m_sb->setting<int>(MS::Cooling::kForceMinLayerTime)) {
                     keyInfo =
                         keyInfo % "Total Adjusted Time: " % MathUtils::formattedTimeSpan(total_adjusted_time()) % "\n";
                 }
@@ -299,11 +294,10 @@ void GCodeLoader::run() {
 
                 emit forwardInfoToMainWindow(keyInfo);
 
-                m_x_offset = visualizationSettings[Constants::PrinterSettings::Dimensions::kXOffset];
-                m_y_offset = visualizationSettings[Constants::PrinterSettings::Dimensions::kYOffset];
-                const Distance& z_offset = visualizationSettings[Constants::PrinterSettings::Dimensions::kZOffset];
-                const Distance& z_min =
-                    GSM->getGlobal()->setting<Distance>(Constants::PrinterSettings::Dimensions::kZMin);
+                m_x_offset = visualizationSettings[PRS::Dimensions::kXOffset];
+                m_y_offset = visualizationSettings[PRS::Dimensions::kYOffset];
+                const Distance& z_offset = visualizationSettings[PRS::Dimensions::kZOffset];
+                const Distance& z_min = GSM->getGlobal()->setting<Distance>(PRS::Dimensions::kZMin);
                 m_z_offset = (z_min - z_offset)() * Constants::OpenGL::kObjectToView;
                 m_start_pos = QVector3D(m_x_offset * Constants::OpenGL::kObjectToView,
                                         m_y_offset * Constants::OpenGL::kObjectToView, 0.0f);
@@ -325,7 +319,7 @@ void GCodeLoader::run() {
                 if (CSM->parts().size() == 1) {
                     // Retrieve the settings ranges for the first part
                     const QSharedPointer<Part>& part = CSM->parts().first();
-                    const QList<QSharedPointer<SettingsRange>>& ranges = part->ranges().values();
+                    const QList<QSharedPointer<SettingsRange>>& ranges = part->getSettingsRanges().values();
 
                     // Populate the layer settings for each range
                     for (const QSharedPointer<SettingsRange>& range : ranges) {
@@ -411,8 +405,7 @@ void GCodeLoader::run() {
             QString additionalHeaderBlock = openingDelim % "Sliced on: " %
                                             QDateTime::currentDateTime().toString("MM/dd/yyyy") % closingDelim % "\n" %
                                             openingDelim % "Expected Weight: " % weightInfo % closingDelim % "\n";
-            if (m_adjust_file && total_adjusted_time > 0 &&
-                m_sb->setting<int>(Constants::MaterialSettings::Cooling::kForceMinLayerTime)) {
+            if (m_adjust_file && total_adjusted_time > 0 && m_sb->setting<int>(MS::Cooling::kForceMinLayerTime)) {
                 additionalHeaderBlock +=
                     openingDelim % "Expected Build Time: " % MathUtils::formattedTimeSpan(total_adjusted_time()) %
                     closingDelim % "\n" % openingDelim % "Minimum Layer Time: " %
@@ -715,20 +708,17 @@ void GCodeLoader::setSegmentDisplayInfo(QSharedPointer<SegmentBase>& segment, co
 
     // Set the display info of the segment
     float display_width = 0.0f;
-    float display_height =
-        m_sb->setting<float>(Constants::ProfileSettings::Layer::kLayerHeight) * Constants::OpenGL::kObjectToView;
+    float display_height = m_sb->setting<float>(PS::Layer::kLayerHeight) * Constants::OpenGL::kObjectToView;
     float display_length = start_pos.distanceToPoint(end_pos);
     float scale =
         m_modifier_colors.contains(color) ? 1.1f : 1.0f; // Scale modifier segments by 1.1 for better visibility
 
     // Set the display width of the segment based on its region type
     if (comment.contains("PERIMETER")) {
-        display_width =
-            m_sb->setting<float>(Constants::ProfileSettings::Perimeter::kBeadWidth) * Constants::OpenGL::kObjectToView;
+        display_width = m_sb->setting<float>(PS::Perimeter::kBeadWidth) * Constants::OpenGL::kObjectToView;
     }
     else if (comment.contains("INSET")) {
-        display_width =
-            m_sb->setting<float>(Constants::ProfileSettings::Inset::kBeadWidth) * Constants::OpenGL::kObjectToView;
+        display_width = m_sb->setting<float>(PS::Inset::kBeadWidth) * Constants::OpenGL::kObjectToView;
     }
     else if (comment.contains("SKELETON")) {
         int start = comment.indexOf("SKELETON-") + 9;
@@ -737,16 +727,13 @@ void GCodeLoader::setSegmentDisplayInfo(QSharedPointer<SegmentBase>& segment, co
         display_width = bead_width * Constants::OpenGL::kObjectToView;
     }
     else if (comment.contains("SKIN")) {
-        display_width =
-            m_sb->setting<float>(Constants::ProfileSettings::Skin::kBeadWidth) * Constants::OpenGL::kObjectToView;
+        display_width = m_sb->setting<float>(PS::Skin::kBeadWidth) * Constants::OpenGL::kObjectToView;
     }
     else if (comment.contains("INFILL")) {
-        display_width =
-            m_sb->setting<float>(Constants::ProfileSettings::Infill::kBeadWidth) * Constants::OpenGL::kObjectToView;
+        display_width = m_sb->setting<float>(PS::Infill::kBeadWidth) * Constants::OpenGL::kObjectToView;
     }
     else { // Default to layer bead width
-        display_width =
-            m_sb->setting<float>(Constants::ProfileSettings::Layer::kBeadWidth) * Constants::OpenGL::kObjectToView;
+        display_width = m_sb->setting<float>(PS::Layer::kBeadWidth) * Constants::OpenGL::kObjectToView;
     }
 
     // Set the display info of the segment

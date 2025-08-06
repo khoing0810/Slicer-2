@@ -1,5 +1,4 @@
-#ifndef CINCINNATI_WRITER_H
-#define CINCINNATI_WRITER_H
+#pragma once
 
 #include "gcode/gcode_meta.h"
 #include "gcode/writers/writer_base.h"
@@ -130,4 +129,3 @@ class CincinnatiWriter : public WriterBase {
 
 }; // class CincinnatiWriter
 } // namespace ORNL
-#endif // CINCINNATI_WRITER_H

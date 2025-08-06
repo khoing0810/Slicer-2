@@ -1,7 +1,5 @@
-#ifndef BRIM_H
-#define BRIM_H
+#pragma once
 
-// Local
 #include "step/layer/regions/region_base.h"
 
 namespace ORNL {
@@ -44,5 +42,3 @@ class Brim : public RegionBase {
     QVector<Polyline> m_computed_geometry;
 };
 } // namespace ORNL
-
-#endif // PERIMETER_H

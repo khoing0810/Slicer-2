@@ -1,11 +1,8 @@
-﻿#ifndef GLOBAL_LAYER_H
-#define GLOBAL_LAYER_H
+﻿#pragma once
 
-// Local
 #include "part/part.h"
 #include "step/layer/island/island_base.h"
 #include "step/layer/scan_layer.h"
-#include "step/step.h"
 
 namespace ORNL {
 /*!
@@ -91,5 +88,3 @@ class GlobalLayer {
     QList<QUuid> m_part_order;
 };
 } // namespace ORNL
-
-#endif // GLOBAL_LAYER_H

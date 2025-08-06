@@ -1,14 +1,11 @@
-#ifndef CONSTANTS_H
-#define CONSTANTS_H
+#pragma once
 
-//! \file constants.h
-
+#include "QColor"
+#include "QHash"
+#include "QVector"
+#include "QVector3D"
 #include "units/unit.h"
 
-#include <QColor>
-#include <QHash>
-#include <QVector3D>
-#include <QVector>
 #include <string>
 
 namespace ORNL {
@@ -582,7 +579,7 @@ class Constants {
         class MultiMaterial {
           public:
             static const QString kEnable;
-            static const QString kPerimterNum;
+            static const QString kPerimeterNum;
             static const QString kInsetNum;
             static const QString kSkinNum;
             static const QString kInfillNum;
@@ -1310,5 +1307,12 @@ class Constants {
         static const QString kVersion;
     };
 };
+
+// Type aliases for easier reading
+using ES = Constants::ExperimentalSettings;
+using MS = Constants::MaterialSettings;
+using PS = Constants::ProfileSettings;
+using PRS = Constants::PrinterSettings;
+using SS = Constants::SegmentSettings;
+
 } // namespace ORNL
-#endif // CONSTANTS_H

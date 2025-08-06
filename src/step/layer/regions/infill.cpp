@@ -1,4 +1,3 @@
-// Main Module
 #include "step/layer/regions/infill.h"
 
 #include "geometry/path_modifier.h"
@@ -6,7 +5,6 @@
 #include "geometry/segments/line.h"
 #include "optimizers/polyline_order_optimizer.h"
 #include "utilities/enums.h"
-#include "utilities/mathutils.h"
 
 namespace ORNL {
 Infill::Infill(const QSharedPointer<SettingsBase>& sb, const int index,
@@ -58,9 +56,9 @@ void Infill::compute(uint layer_num, QSharedPointer<SyncManager>& sync) {
             PolygonList geometry;
             geometry += (m_geometry & settings_polygon);
             QSharedPointer<SettingsBase> region_settings = QSharedPointer<SettingsBase>::create(*m_sb);
-            region_settings->setSetting(Constants::ProfileSettings::Infill::kLineSpacing,
-                                        settings_polygon.getSettings()->setting<Distance>(
-                                            Constants::ProfileSettings::Infill::kLineSpacing));
+            region_settings->setSetting(
+                Constants::ProfileSettings::Infill::kLineSpacing,
+                settings_polygon.getSettings()->setting<Distance>(Constants::ProfileSettings::Infill::kLineSpacing));
 
             fillGeometry(geometry, region_settings);
         }
@@ -408,239 +406,6 @@ bool Infill::settingsSame(QSharedPointer<SettingsBase> a, QSharedPointer<Setting
                          b->setting<Angle>(Constants::ProfileSettings::Infill::kAngle)()) &&
            a->setting<bool>(Constants::ProfileSettings::Infill::kEnable) ==
                b->setting<bool>(Constants::ProfileSettings::Infill::kEnable);
-}
-
-QVector<QSharedPointer<SegmentBase>> Infill::applyGrid(QSharedPointer<SegmentBase> seg) {
-    QVector<QSharedPointer<SegmentBase>> segments;
-
-    Point originPoint = m_grid_info.m_object_origin;
-    Point newStart = seg->start() - originPoint, newEnd = seg->end() - originPoint;
-
-    int maxX = m_grid_info.m_grid.size() - 1;
-    int maxY = m_grid_info.m_grid[0].size() - 1;
-
-    int xStart = qFloor((newStart.x() - m_grid_info.m_x_min) / m_grid_info.m_x_step);
-    xStart = qMax(0, qMin(xStart, maxX));
-    int yStart = qFloor((newStart.y() - m_grid_info.m_y_min) / m_grid_info.m_y_step);
-    yStart = qMax(0, qMin(yStart, maxY));
-    int xEnd = qFloor((newEnd.x() - m_grid_info.m_x_min) / m_grid_info.m_x_step);
-    xEnd = qMax(0, qMin(xEnd, maxX));
-    int yEnd = qFloor((newEnd.y() - m_grid_info.m_y_min) / m_grid_info.m_y_step);
-    yEnd = qMax(0, qMin(yEnd, maxY));
-
-    int dx = qAbs(xEnd - xStart);
-    int dy = qAbs(yEnd - yStart);
-    int x = xStart;
-    int y = yStart;
-    int n = dx + dy;
-    int x_inc = (xEnd > xStart) ? 1 : -1;
-    int y_inc = (yEnd > yStart) ? 1 : -1;
-    int error = dx - dy;
-    dx *= 2;
-    dy *= 2;
-
-    Point currentStart = newStart, currentEnd = newEnd;
-    for (; n > 0; --n) {
-        Point intersect;
-        if (error > 0) {
-            Point nextGrid1, nextGrid2;
-            if (x_inc > 0) {
-                nextGrid1 = Point((x + x_inc) * m_grid_info.m_x_step + m_grid_info.m_x_min, 0);
-                nextGrid2 = Point((x + x_inc) * m_grid_info.m_x_step + m_grid_info.m_x_min,
-                                  maxY * m_grid_info.m_y_step + m_grid_info.m_y_min);
-            }
-            else {
-                nextGrid1 = Point(x * m_grid_info.m_x_step + m_grid_info.m_x_min, 0);
-                nextGrid2 = Point(x * m_grid_info.m_x_step + m_grid_info.m_x_min,
-                                  maxY * m_grid_info.m_y_step + m_grid_info.m_y_min);
-            }
-            intersect = MathUtils::lineIntersection(currentStart, currentEnd, nextGrid1, nextGrid2);
-
-            QSharedPointer<SegmentBase> newSegment = QSharedPointer<LineSegment>::create(currentStart, intersect);
-            newSegment->getSb()->setSetting(Constants::SegmentSettings::kWidth,
-                                            seg->getSb()->setting<Distance>(Constants::SegmentSettings::kWidth));
-            newSegment->getSb()->setSetting(Constants::SegmentSettings::kHeight,
-                                            seg->getSb()->setting<Distance>(Constants::SegmentSettings::kHeight));
-            newSegment->getSb()->setSetting(Constants::SegmentSettings::kSpeed,
-                                            seg->getSb()->setting<Distance>(Constants::SegmentSettings::kSpeed));
-            newSegment->getSb()->setSetting(Constants::SegmentSettings::kAccel,
-                                            seg->getSb()->setting<Distance>(Constants::SegmentSettings::kAccel));
-            newSegment->getSb()->setSetting(
-                Constants::SegmentSettings::kExtruderSpeed,
-                seg->getSb()->setting<Distance>(Constants::SegmentSettings::kExtruderSpeed));
-            newSegment->getSb()->setSetting(
-                Constants::SegmentSettings::kMaterialNumber,
-                seg->getSb()->setting<Distance>(Constants::SegmentSettings::kMaterialNumber));
-            newSegment->getSb()->setSetting(Constants::SegmentSettings::kRegionType, RegionType::kInfill);
-            newSegment->getSb()->setSetting(Constants::SegmentSettings::kRecipe,
-                                            getBlendVal(currentStart, intersect, maxX, maxY));
-            segments.push_back(newSegment);
-
-            currentStart = intersect;
-            x += x_inc;
-            error -= dy;
-        }
-        else if (error < 0) {
-            Point nextGrid1, nextGrid2;
-            if (y_inc > 0) {
-                nextGrid1 = Point(0, (y + y_inc) * m_grid_info.m_y_step + m_grid_info.m_y_min);
-                nextGrid2 = Point(maxX * m_grid_info.m_x_step + m_grid_info.m_x_min,
-                                  (y + y_inc) * m_grid_info.m_y_step + m_grid_info.m_y_min);
-            }
-            else {
-                nextGrid1 = Point(0, y * m_grid_info.m_y_step + m_grid_info.m_y_min);
-                nextGrid2 = Point(maxX * m_grid_info.m_x_step + m_grid_info.m_x_min,
-                                  y * m_grid_info.m_y_step + m_grid_info.m_y_min);
-            }
-            intersect = MathUtils::lineIntersection(currentStart, currentEnd, nextGrid1, nextGrid2);
-
-            QSharedPointer<SegmentBase> newSegment = QSharedPointer<LineSegment>::create(currentStart, intersect);
-            newSegment->getSb()->setSetting(Constants::SegmentSettings::kWidth,
-                                            seg->getSb()->setting<Distance>(Constants::SegmentSettings::kWidth));
-            newSegment->getSb()->setSetting(Constants::SegmentSettings::kHeight,
-                                            seg->getSb()->setting<Distance>(Constants::SegmentSettings::kHeight));
-            newSegment->getSb()->setSetting(Constants::SegmentSettings::kSpeed,
-                                            seg->getSb()->setting<Distance>(Constants::SegmentSettings::kSpeed));
-            newSegment->getSb()->setSetting(Constants::SegmentSettings::kAccel,
-                                            seg->getSb()->setting<Distance>(Constants::SegmentSettings::kAccel));
-            newSegment->getSb()->setSetting(
-                Constants::SegmentSettings::kExtruderSpeed,
-                seg->getSb()->setting<Distance>(Constants::SegmentSettings::kExtruderSpeed));
-            newSegment->getSb()->setSetting(
-                Constants::SegmentSettings::kMaterialNumber,
-                seg->getSb()->setting<Distance>(Constants::SegmentSettings::kMaterialNumber));
-            newSegment->getSb()->setSetting(Constants::SegmentSettings::kRegionType, RegionType::kInfill);
-            newSegment->getSb()->setSetting(Constants::SegmentSettings::kRecipe,
-                                            getBlendVal(currentStart, intersect, maxX, maxY));
-            segments.push_back(newSegment);
-
-            currentStart = intersect;
-
-            y += y_inc;
-            error += dx;
-        }
-        else if (error == 0) {
-            // perfectly diagonal so choose either vertical or horizontal intersection
-            Point nextGrid1;
-            Point nextGrid2;
-            if (x_inc > 0) {
-                nextGrid1 = Point((x + x_inc) * m_grid_info.m_x_step + m_grid_info.m_x_min, 0);
-                nextGrid2 = Point((x + x_inc) * m_grid_info.m_x_step + m_grid_info.m_x_min,
-                                  maxY * m_grid_info.m_y_step + m_grid_info.m_y_min);
-            }
-            else {
-                nextGrid1 = Point(x * m_grid_info.m_x_step + m_grid_info.m_x_min, 0);
-                nextGrid2 = Point(x * m_grid_info.m_x_step + m_grid_info.m_x_min,
-                                  maxY * m_grid_info.m_y_step + m_grid_info.m_y_min);
-            }
-
-            intersect = MathUtils::lineIntersection(currentStart, currentEnd, nextGrid1, nextGrid2);
-
-            QSharedPointer<SegmentBase> newSegment = QSharedPointer<LineSegment>::create(currentStart, intersect);
-            newSegment->getSb()->setSetting(Constants::SegmentSettings::kWidth,
-                                            seg->getSb()->setting<Distance>(Constants::SegmentSettings::kWidth));
-            newSegment->getSb()->setSetting(Constants::SegmentSettings::kHeight,
-                                            seg->getSb()->setting<Distance>(Constants::SegmentSettings::kHeight));
-            newSegment->getSb()->setSetting(Constants::SegmentSettings::kSpeed,
-                                            seg->getSb()->setting<Distance>(Constants::SegmentSettings::kSpeed));
-            newSegment->getSb()->setSetting(Constants::SegmentSettings::kAccel,
-                                            seg->getSb()->setting<Distance>(Constants::SegmentSettings::kAccel));
-            newSegment->getSb()->setSetting(
-                Constants::SegmentSettings::kExtruderSpeed,
-                seg->getSb()->setting<Distance>(Constants::SegmentSettings::kExtruderSpeed));
-            newSegment->getSb()->setSetting(
-                Constants::SegmentSettings::kMaterialNumber,
-                seg->getSb()->setting<Distance>(Constants::SegmentSettings::kMaterialNumber));
-            newSegment->getSb()->setSetting(Constants::SegmentSettings::kRegionType, RegionType::kInfill);
-            newSegment->getSb()->setSetting(Constants::SegmentSettings::kRecipe,
-                                            getBlendVal(currentStart, intersect, maxX, maxY));
-            segments.push_back(newSegment);
-
-            currentStart = intersect;
-
-            x += x_inc;
-            y += y_inc;
-            error -= dy;
-            error += dx;
-            --n;
-        }
-    }
-
-    QSharedPointer<SegmentBase> newSegment = QSharedPointer<LineSegment>::create(currentStart, currentEnd);
-    newSegment->getSb()->setSetting(Constants::SegmentSettings::kWidth,
-                                    seg->getSb()->setting<Distance>(Constants::SegmentSettings::kWidth));
-    newSegment->getSb()->setSetting(Constants::SegmentSettings::kHeight,
-                                    seg->getSb()->setting<Distance>(Constants::SegmentSettings::kHeight));
-    newSegment->getSb()->setSetting(Constants::SegmentSettings::kSpeed,
-                                    seg->getSb()->setting<Distance>(Constants::SegmentSettings::kSpeed));
-    newSegment->getSb()->setSetting(Constants::SegmentSettings::kAccel,
-                                    seg->getSb()->setting<Distance>(Constants::SegmentSettings::kAccel));
-    newSegment->getSb()->setSetting(Constants::SegmentSettings::kExtruderSpeed,
-                                    seg->getSb()->setting<Distance>(Constants::SegmentSettings::kExtruderSpeed));
-    newSegment->getSb()->setSetting(Constants::SegmentSettings::kMaterialNumber,
-                                    seg->getSb()->setting<Distance>(Constants::SegmentSettings::kMaterialNumber));
-    newSegment->getSb()->setSetting(Constants::SegmentSettings::kRegionType, RegionType::kInfill);
-    newSegment->getSb()->setSetting(Constants::SegmentSettings::kRecipe,
-                                    getBlendVal(currentStart, currentEnd, maxX, maxY));
-    segments.push_back(newSegment);
-
-    for (QSharedPointer<SegmentBase> seg : segments) {
-        seg->setStart(seg->start() + originPoint);
-        seg->setEnd(seg->end() + originPoint);
-    }
-    return segments;
-}
-
-int Infill::getBlendVal(Point start, Point end, int xMax, int yMax) {
-    Point mid = (start + end) / 2;
-    double xConv = (mid.x() - m_grid_info.m_x_min) / m_grid_info.m_x_step;
-    double yConv = (mid.y() - m_grid_info.m_y_min) / m_grid_info.m_y_step;
-    int xLow = qMax(0, qMin(qFloor(xConv), xMax));
-    int xHigh = qMax(0, qMin(qCeil(xConv), xMax));
-    int yLow = qMax(0, qMin(qFloor(yConv), yMax));
-    int yHigh = qMax(0, qMin(qCeil(yConv), yMax));
-
-    QVector<double> vals;
-    // corner
-    if ((xLow == 0 && xHigh == 0 || xLow == xMax && xHigh == xMax) &&
-        (yLow == 0 && yHigh == 0 || yLow == yMax && yHigh == yMax)) {
-        vals.push_back(m_grid_info.m_grid[xLow][yLow]);
-    }
-    // edge
-    else if ((xLow == 0 && xHigh == 0 || xLow == xMax && xHigh == xMax) ||
-             (yLow == 0 && yHigh == 0 || yLow == yMax && yHigh == yMax)) {
-        if (xLow == 0 || xLow == xMax) {
-            vals.push_back(m_grid_info.m_grid[xLow][yLow]);
-            vals.push_back(m_grid_info.m_grid[xLow][yHigh]);
-        }
-        else {
-            vals.push_back(m_grid_info.m_grid[xLow][yLow]);
-            vals.push_back(m_grid_info.m_grid[xHigh][yLow]);
-        }
-    }
-    // center
-    else {
-        vals.push_back(m_grid_info.m_grid[xLow][yLow]);
-        vals.push_back(m_grid_info.m_grid[xHigh][yLow]);
-        vals.push_back(m_grid_info.m_grid[xLow][yHigh]);
-        vals.push_back(m_grid_info.m_grid[xHigh][yHigh]);
-    }
-
-    double blendVal = 0.0;
-    for (double val : vals)
-        blendVal += val;
-
-    blendVal /= vals.size();
-
-    int recipe = 1;
-    for (RecipeMap rMap : m_grid_info.m_recipe_maps) {
-        if (blendVal >= rMap.m_min && blendVal <= rMap.m_max) {
-            recipe = rMap.m_id;
-            break;
-        }
-    }
-
-    return recipe;
 }
 
 void Infill::setLayerCount(uint layer_count) { m_layer_count = layer_count - 1; }

@@ -2,7 +2,6 @@
 
 #include "cross_section/cross_section.h"
 #include "slicing/slicing_utilities.h"
-#include "step/layer/island/polymer_island.h"
 
 namespace ORNL {
 
