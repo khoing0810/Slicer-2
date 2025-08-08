@@ -43,8 +43,9 @@ void Inset::compute(uint layer_num, QSharedPointer<SyncManager>& sync) {
     PolygonList path_line = m_geometry.offset(-beadWidth / 2);
 
     Distance overlap = m_sb->setting<Distance>(PS::Inset::kOverlap);
-    if (overlap > 0)
+    if (overlap > 0) {
         path_line = path_line.offset(overlap);
+    }
 
     int ring_nr = 0;
     while (!path_line.isEmpty() && ring_nr < rings) {
@@ -56,8 +57,8 @@ void Inset::compute(uint layer_num, QSharedPointer<SyncManager>& sync) {
 
         ring_nr++;
 
-        m_geometry = path_line.offset(-beadWidth / 2, -beadWidth / 2);
-        path_line = path_line.offset(-beadWidth, -beadWidth / 2);
+        m_geometry = path_line.offset(-beadWidth / 2., -beadWidth / 2.);
+        path_line = path_line.offset(-beadWidth, -beadWidth / 2.);
     }
 }
 
@@ -93,16 +94,31 @@ void Inset::optimize(int layerNumber, Point& current_location, QVector<Path>& in
     m_paths.clear();
 
     if (static_cast<PrintDirection>(m_sb->setting<int>(PS::Ordering::kInsetReverseDirection)) !=
-        PrintDirection::kReverse_off)
-        for (Polyline& line : m_computed_geometry)
+        PrintDirection::kReverse_off) {
+        for (Polyline& line : m_computed_geometry) {
             line = line.reverse();
+        }
+    }
 
     poo.setGeometryToEvaluate(m_computed_geometry, RegionType::kInset,
                               static_cast<PathOrderOptimization>(m_sb->setting<int>(PS::Optimizations::kPathOrder)));
 
     while (poo.getCurrentPolylineCount() > 0) {
         Polyline result = poo.linkNextPolyline();
+
+        // Exit early if no inset path can be made
+        if (result.size() < 3) {
+            continue;
+        }
+
+        // Create path from polyline
         Path newPath = createPath(result);
+        newPath.setCCW(result.orientation());
+
+        // Exit early if inset path is too short
+        if (newPath.calculateLength() < m_sb->setting<Distance>(PS::Inset::kMinPathLength)) {
+            continue;
+        }
 
         if (newPath.size() > 0) {
             QVector<Path> temp_path;
@@ -116,199 +132,26 @@ void Inset::optimize(int layerNumber, Point& current_location, QVector<Path>& in
 }
 
 Path Inset::createPath(Polyline line) {
-    Path new_path;
+    // ---------- No Settings Regions ----------
+    if (m_settings_polygons.isEmpty()) {
+        Path path;
 
-    Distance default_width = m_sb->setting<Distance>(PS::Inset::kBeadWidth);
-    Distance default_height = m_sb->setting<Distance>(PS::Layer::kLayerHeight);
-    Velocity default_speed = m_sb->setting<Velocity>(PS::Inset::kSpeed);
-    Acceleration default_acceleration = m_sb->setting<Acceleration>(PRS::Acceleration::kInset);
-    AngularVelocity default_extruder_speed = m_sb->setting<AngularVelocity>(PS::Inset::kExtruderSpeed);
-    int material_number = m_sb->setting<int>(MS::MultiMaterial::kInsetNum);
-
-    for (int j = 0, end_cond = line.size(); j < end_cond; ++j) {
-        Point start = line[j];
-        Point end = line[(j + 1) % end_cond];
-
-        bool is_settings_region = false;
-
-        QVector<Point> intersections;
-        for (auto settings_poly : m_settings_polygons) {
-            QSharedPointer<SettingsBase> updatedBase = QSharedPointer<SettingsBase>::create(*m_sb);
-            updatedBase->populate(settings_poly.getSettings());
-            bool contains_start = settings_poly.inside(start);
-            bool contains_end = settings_poly.inside(end);
-
-            if (contains_start)
-                start.setSettings(updatedBase);
-            else
-                start.setSettings(m_sb);
-
-            if (contains_end)
-                end.setSettings(updatedBase);
-            else
-                end.setSettings(m_sb);
-
-            if (contains_start)
-                is_settings_region = true;
-            else if (contains_end)
-                is_settings_region = false;
-
-            // Find if/ where this line intersects with a settings polygon
-            QVector<Point> poly_intersect = settings_poly.clipLine(start, end);
-
-            for (Point& point : poly_intersect)
-                point.setSettings(updatedBase);
-
-            intersections.append(poly_intersect);
-        }
-
-        // Divide lines into subsections
-        if (intersections.size() > 0) {
-            // Sort points in order to start
-            std::sort(intersections.begin(), intersections.end(),
-                      [start](auto lhs, auto rhs) { return start.distance(lhs) < start.distance(rhs); });
-
-            for (Point& point : intersections) {
-                // If no settings change, skip this point
-                if (point.getSettings()->json() == m_sb->json())
-                    continue;
-
-                QSharedPointer<LineSegment> segment = QSharedPointer<LineSegment>::create(start, point);
-
-                segment->getSb()->setSetting(
-                    SS::kWidth,
-                    is_settings_region ? start.getSettings()->setting<Distance>(PS::Inset::kBeadWidth) : default_width);
-                segment->getSb()->setSetting(
-                    SS::kHeight, is_settings_region ? start.getSettings()->setting<Distance>(PS::Layer::kLayerHeight)
-                                                    : default_height);
-                segment->getSb()->setSetting(SS::kSpeed, is_settings_region
-                                                             ? start.getSettings()->setting<Velocity>(PS::Inset::kSpeed)
-                                                             : default_speed);
-                segment->getSb()->setSetting(SS::kAccel,
-                                             is_settings_region
-                                                 ? start.getSettings()->setting<Acceleration>(PRS::Acceleration::kInset)
-                                                 : default_acceleration);
-                segment->getSb()->setSetting(
-                    SS::kExtruderSpeed, is_settings_region
-                                            ? start.getSettings()->setting<AngularVelocity>(PS::Inset::kExtruderSpeed)
-                                            : default_extruder_speed);
-                segment->getSb()->setSetting(SS::kMaterialNumber, material_number);
-                segment->getSb()->setSetting(SS::kRegionType, RegionType::kInset);
-
-                new_path.append(segment);
-                is_settings_region = !is_settings_region;
-                start = point;
-            }
-        }
-
-        // Add final segment
-        QSharedPointer<LineSegment> segment = QSharedPointer<LineSegment>::create(start, end);
-        segment->getSb()->setSetting(SS::kWidth, is_settings_region
-                                                     ? start.getSettings()->setting<Distance>(PS::Inset::kBeadWidth)
-                                                     : default_width);
-        segment->getSb()->setSetting(SS::kHeight, is_settings_region
-                                                      ? start.getSettings()->setting<Distance>(PS::Layer::kLayerHeight)
-                                                      : default_height);
-        segment->getSb()->setSetting(
-            SS::kSpeed, is_settings_region ? start.getSettings()->setting<Velocity>(PS::Inset::kSpeed) : default_speed);
-        segment->getSb()->setSetting(
-            SS::kAccel, is_settings_region ? start.getSettings()->setting<Acceleration>(PRS::Acceleration::kInset)
-                                           : default_acceleration);
-        segment->getSb()->setSetting(SS::kExtruderSpeed,
-                                     is_settings_region
-                                         ? start.getSettings()->setting<AngularVelocity>(PS::Inset::kExtruderSpeed)
-                                         : default_extruder_speed);
-        segment->getSb()->setSetting(SS::kMaterialNumber, material_number);
-        segment->getSb()->setSetting(SS::kRegionType, RegionType::kInset);
-
-        new_path.append(segment);
-    }
-
-    if (new_path.calculateLength() > m_sb->setting<Distance>(PS::Inset::kMinPathLength)) {
-        return new_path;
-    }
-    else {
-        return Path();
-    }
-}
-
-void Inset::calculateModifiers(Path& path, bool supportsG3, QVector<Path>& innerMostClosedContour) {
-    if (m_sb->setting<bool>(ES::Ramping::kTrajectoryAngleEnabled)) {
-        PathModifierGenerator::GenerateTrajectorySlowdown(path, m_sb);
-    }
-
-    // add the modifiers
-    if (m_sb->setting<bool>(MS::Slowdown::kInsetEnable)) {
-        PathModifierGenerator::GenerateSlowdown(path, m_sb->setting<Distance>(MS::Slowdown::kInsetDistance),
-                                                m_sb->setting<Distance>(MS::Slowdown::kInsetLiftDistance),
-                                                m_sb->setting<Distance>(MS::Slowdown::kInsetCutoffDistance),
-                                                m_sb->setting<Velocity>(MS::Slowdown::kInsetSpeed),
-                                                m_sb->setting<AngularVelocity>(MS::Slowdown::kInsetExtruderSpeed),
-                                                m_sb->setting<bool>(PS::SpecialModes::kEnableWidthHeight),
-                                                m_sb->setting<double>(MS::Slowdown::kSlowDownAreaModifier));
-    }
-    if (m_sb->setting<bool>(MS::TipWipe::kInsetEnable)) {
-        if (static_cast<TipWipeDirection>(m_sb->setting<int>(MS::TipWipe::kInsetDirection)) ==
-                TipWipeDirection::kForward ||
-            static_cast<TipWipeDirection>(m_sb->setting<int>(MS::TipWipe::kInsetDirection)) ==
-                TipWipeDirection::kOptimal)
-            PathModifierGenerator::GenerateTipWipe(
-                path, PathModifiers::kForwardTipWipe, m_sb->setting<Distance>(MS::TipWipe::kInsetDistance),
-                m_sb->setting<Velocity>(MS::TipWipe::kInsetSpeed), m_sb->setting<Angle>(MS::TipWipe::kInsetAngle),
-                m_sb->setting<AngularVelocity>(MS::TipWipe::kInsetExtruderSpeed),
-                m_sb->setting<Distance>(MS::TipWipe::kInsetLiftHeight),
-                m_sb->setting<Distance>(MS::TipWipe::kInsetCutoffDistance));
-        else if (static_cast<TipWipeDirection>(m_sb->setting<int>(MS::TipWipe::kInsetDirection)) ==
-                 TipWipeDirection::kAngled) {
-            PathModifierGenerator::GenerateTipWipe(
-                path, PathModifiers::kAngledTipWipe, m_sb->setting<Distance>(MS::TipWipe::kInsetDistance),
-                m_sb->setting<Velocity>(MS::TipWipe::kInsetSpeed), m_sb->setting<Angle>(MS::TipWipe::kInsetAngle),
-                m_sb->setting<AngularVelocity>(MS::TipWipe::kInsetExtruderSpeed),
-                m_sb->setting<Distance>(MS::TipWipe::kInsetLiftHeight),
-                m_sb->setting<Distance>(MS::TipWipe::kInsetCutoffDistance));
-        }
-        else
-            PathModifierGenerator::GenerateTipWipe(
-                path, PathModifiers::kReverseTipWipe, m_sb->setting<Distance>(MS::TipWipe::kInsetDistance),
-                m_sb->setting<Velocity>(MS::TipWipe::kInsetSpeed), m_sb->setting<Angle>(MS::TipWipe::kInsetAngle),
-                m_sb->setting<AngularVelocity>(MS::TipWipe::kInsetExtruderSpeed),
-                m_sb->setting<Distance>(MS::TipWipe::kInsetLiftHeight),
-                m_sb->setting<Distance>(MS::TipWipe::kInsetCutoffDistance));
-    }
-    if (m_sb->setting<bool>(MS::SpiralLift::kInsetEnable)) {
-        PathModifierGenerator::GenerateSpiralLift(path, m_sb->setting<Distance>(MS::SpiralLift::kLiftRadius),
-                                                  m_sb->setting<Distance>(MS::SpiralLift::kLiftHeight),
-                                                  m_sb->setting<int>(MS::SpiralLift::kLiftPoints),
-                                                  m_sb->setting<Velocity>(MS::SpiralLift::kLiftSpeed), supportsG3);
-    }
-    if (m_sb->setting<bool>(MS::Startup::kInsetEnable)) {
-        if (m_sb->setting<bool>(MS::Startup::kInsetRampUpEnable)) {
-            PathModifierGenerator::GenerateInitialStartupWithRampUp(
-                path, m_sb->setting<Distance>(MS::Startup::kInsetDistance),
-                m_sb->setting<Velocity>(MS::Startup::kInsetSpeed), m_sb->setting<Velocity>(PS::Inset::kSpeed),
-                m_sb->setting<AngularVelocity>(MS::Startup::kInsetExtruderSpeed),
-                m_sb->setting<AngularVelocity>(PS::Inset::kExtruderSpeed), m_sb->setting<int>(MS::Startup::kInsetSteps),
-                m_sb->setting<bool>(PS::SpecialModes::kEnableWidthHeight),
-                m_sb->setting<double>(MS::Startup::kStartUpAreaModifier));
-        }
-        else {
-            PathModifierGenerator::GenerateInitialStartup(
-                path, m_sb->setting<Distance>(MS::Startup::kInsetDistance),
-                m_sb->setting<Velocity>(MS::Startup::kInsetSpeed),
-                m_sb->setting<AngularVelocity>(MS::Startup::kInsetExtruderSpeed),
-                m_sb->setting<bool>(PS::SpecialModes::kEnableWidthHeight),
-                m_sb->setting<double>(MS::Startup::kStartUpAreaModifier));
+        for (size_t i = 0; i < line.size(); ++i) {
+            LSegmentPtr segment = LSegmentPtr::create(line[i], line[(i + 1) % line.size()]);
+            populateSegmentSettings(segment->getSb(), m_sb);
+            path.append(segment);
         }
     }
+
+    // ---------- Settings Regions ----------
+    return createPathWithLocalizedSettings(line);
 }
 
 #ifdef HAVE_SINGLE_PATH
 void Inset::setSinglePathGeometry(QVector<SinglePath::PolygonList> sp_geometry) {
     m_single_path_geometry = sp_geometry;
 }
-#endif
 
-#ifdef HAVE_SINGLE_PATH
 void Inset::createSinglePaths() {
     Distance perim_width = m_sb->setting<Distance>(PS::Perimeter::kBeadWidth);
     Distance perim_height = m_sb->setting<Distance>(PS::Layer::kLayerHeight);
@@ -402,4 +245,135 @@ QVector<Path>& Inset::getOuterMostPathSet() { return m_outer_most_path_set; }
 QVector<Path>& Inset::getInnerMostPathSet() { return m_inner_most_path_set; }
 
 QVector<Polyline> Inset::getComputedGeometry() { return m_computed_geometry; }
+
+void Inset::calculateModifiers(Path& path, bool supportsG3, QVector<Path>& innerMostClosedContour) {
+    if (m_sb->setting<bool>(ES::Ramping::kTrajectoryAngleEnabled)) {
+        PathModifierGenerator::GenerateTrajectorySlowdown(path, m_sb);
+    }
+
+    // add the modifiers
+    if (m_sb->setting<bool>(MS::Slowdown::kInsetEnable)) {
+        PathModifierGenerator::GenerateSlowdown(path, m_sb->setting<Distance>(MS::Slowdown::kInsetDistance),
+                                                m_sb->setting<Distance>(MS::Slowdown::kInsetLiftDistance),
+                                                m_sb->setting<Distance>(MS::Slowdown::kInsetCutoffDistance),
+                                                m_sb->setting<Velocity>(MS::Slowdown::kInsetSpeed),
+                                                m_sb->setting<AngularVelocity>(MS::Slowdown::kInsetExtruderSpeed),
+                                                m_sb->setting<bool>(PS::SpecialModes::kEnableWidthHeight),
+                                                m_sb->setting<double>(MS::Slowdown::kSlowDownAreaModifier));
+    }
+    if (m_sb->setting<bool>(MS::TipWipe::kInsetEnable)) {
+        if (static_cast<TipWipeDirection>(m_sb->setting<int>(MS::TipWipe::kInsetDirection)) ==
+                TipWipeDirection::kForward ||
+            static_cast<TipWipeDirection>(m_sb->setting<int>(MS::TipWipe::kInsetDirection)) ==
+                TipWipeDirection::kOptimal)
+            PathModifierGenerator::GenerateTipWipe(
+                path, PathModifiers::kForwardTipWipe, m_sb->setting<Distance>(MS::TipWipe::kInsetDistance),
+                m_sb->setting<Velocity>(MS::TipWipe::kInsetSpeed), m_sb->setting<Angle>(MS::TipWipe::kInsetAngle),
+                m_sb->setting<AngularVelocity>(MS::TipWipe::kInsetExtruderSpeed),
+                m_sb->setting<Distance>(MS::TipWipe::kInsetLiftHeight),
+                m_sb->setting<Distance>(MS::TipWipe::kInsetCutoffDistance));
+        else if (static_cast<TipWipeDirection>(m_sb->setting<int>(MS::TipWipe::kInsetDirection)) ==
+                 TipWipeDirection::kAngled) {
+            PathModifierGenerator::GenerateTipWipe(
+                path, PathModifiers::kAngledTipWipe, m_sb->setting<Distance>(MS::TipWipe::kInsetDistance),
+                m_sb->setting<Velocity>(MS::TipWipe::kInsetSpeed), m_sb->setting<Angle>(MS::TipWipe::kInsetAngle),
+                m_sb->setting<AngularVelocity>(MS::TipWipe::kInsetExtruderSpeed),
+                m_sb->setting<Distance>(MS::TipWipe::kInsetLiftHeight),
+                m_sb->setting<Distance>(MS::TipWipe::kInsetCutoffDistance));
+        }
+        else
+            PathModifierGenerator::GenerateTipWipe(
+                path, PathModifiers::kReverseTipWipe, m_sb->setting<Distance>(MS::TipWipe::kInsetDistance),
+                m_sb->setting<Velocity>(MS::TipWipe::kInsetSpeed), m_sb->setting<Angle>(MS::TipWipe::kInsetAngle),
+                m_sb->setting<AngularVelocity>(MS::TipWipe::kInsetExtruderSpeed),
+                m_sb->setting<Distance>(MS::TipWipe::kInsetLiftHeight),
+                m_sb->setting<Distance>(MS::TipWipe::kInsetCutoffDistance));
+    }
+    if (m_sb->setting<bool>(MS::SpiralLift::kInsetEnable)) {
+        PathModifierGenerator::GenerateSpiralLift(path, m_sb->setting<Distance>(MS::SpiralLift::kLiftRadius),
+                                                  m_sb->setting<Distance>(MS::SpiralLift::kLiftHeight),
+                                                  m_sb->setting<int>(MS::SpiralLift::kLiftPoints),
+                                                  m_sb->setting<Velocity>(MS::SpiralLift::kLiftSpeed), supportsG3);
+    }
+    if (m_sb->setting<bool>(MS::Startup::kInsetEnable)) {
+        if (m_sb->setting<bool>(MS::Startup::kInsetRampUpEnable)) {
+            PathModifierGenerator::GenerateInitialStartupWithRampUp(
+                path, m_sb->setting<Distance>(MS::Startup::kInsetDistance),
+                m_sb->setting<Velocity>(MS::Startup::kInsetSpeed), m_sb->setting<Velocity>(PS::Inset::kSpeed),
+                m_sb->setting<AngularVelocity>(MS::Startup::kInsetExtruderSpeed),
+                m_sb->setting<AngularVelocity>(PS::Inset::kExtruderSpeed), m_sb->setting<int>(MS::Startup::kInsetSteps),
+                m_sb->setting<bool>(PS::SpecialModes::kEnableWidthHeight),
+                m_sb->setting<double>(MS::Startup::kStartUpAreaModifier));
+        }
+        else {
+            PathModifierGenerator::GenerateInitialStartup(
+                path, m_sb->setting<Distance>(MS::Startup::kInsetDistance),
+                m_sb->setting<Velocity>(MS::Startup::kInsetSpeed),
+                m_sb->setting<AngularVelocity>(MS::Startup::kInsetExtruderSpeed),
+                m_sb->setting<bool>(PS::SpecialModes::kEnableWidthHeight),
+                m_sb->setting<double>(MS::Startup::kStartUpAreaModifier));
+        }
+    }
+}
+
+Path Inset::createPathWithLocalizedSettings(const Polyline& line) {
+    Path path;
+
+    // Iterate through each segment of the polyline
+    for (size_t i = 0; i < line.size(); ++i) {
+        const Point& start = line[i];
+        const Point& end = line[(i + 1) % line.size()];
+
+        // Clip the segment against the settings polygons
+        QVector<Point> cuts;
+        for (const SettingsPolygon& polygon : m_settings_polygons) {
+            cuts += polygon.clipLine(start, end);
+        }
+
+        // Sort cuts based on their distance from the start point
+        std::sort(cuts.begin(), cuts.end(),
+                  [start](const Point& a, const Point& b) { return start.distance(a) < start.distance(b); });
+
+        // Create an ordered list of points including start, cuts, and end
+        QVector<Point> points;
+        points << start << cuts << end;
+
+        // Assemble subsegments from the points and apply regional settings
+        for (size_t j = 0; j + 1 < points.size(); ++j) {
+            const Point& p0 = points[j];
+            const Point& p1 = points[j + 1];
+            const Point mid = (p0 + p1) * 0.5;
+
+            // Assign the subsegment default settings from the main settings base
+            QSharedPointer<SettingsBase> parent_sb = QSharedPointer<SettingsBase>::create(*m_sb);
+
+            // Populate the subsegment settings with local settings
+            for (const SettingsPolygon& polygon : m_settings_polygons) {
+                if (polygon.inside(mid)) {
+                    parent_sb->populate(polygon.getSettings());
+                    break;
+                }
+            }
+
+            LSegmentPtr segment = LSegmentPtr::create(p0, p1);
+            populateSegmentSettings(segment->getSb(), parent_sb);
+            path.append(segment);
+        }
+    }
+    return path;
+}
+
+void Inset::populateSegmentSettings(QSharedPointer<SettingsBase> segment_sb,
+                                    const QSharedPointer<SettingsBase>& parent_sb) {
+    // Populate segment settings with the provided settings base
+    segment_sb->populate(parent_sb);
+
+    segment_sb->setSetting(SS::kWidth, parent_sb->setting<Distance>(PS::Inset::kBeadWidth));
+    segment_sb->setSetting(SS::kHeight, parent_sb->setting<Distance>(PS::Layer::kLayerHeight));
+    segment_sb->setSetting(SS::kSpeed, parent_sb->setting<Velocity>(PS::Inset::kSpeed));
+    segment_sb->setSetting(SS::kAccel, parent_sb->setting<Acceleration>(PRS::Acceleration::kInset));
+    segment_sb->setSetting(SS::kExtruderSpeed, parent_sb->setting<AngularVelocity>(PS::Inset::kExtruderSpeed));
+    segment_sb->setSetting(SS::kMaterialNumber, parent_sb->setting<int>(MS::MultiMaterial::kInsetNum));
+    segment_sb->setSetting(SS::kRegionType, RegionType::kInset);
+}
 } // namespace ORNL
