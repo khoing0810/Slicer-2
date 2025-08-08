@@ -550,7 +550,6 @@ void Skeleton::extractSimplePaths() {
 
 void Skeleton::extractPath(QVector<SkeletonEdge> path_) {
     Polyline path;
-    Distance min_path_length = m_sb->setting<Distance>(PS::Skeleton::kMinPathLength);
 
     SkeletonEdge e = path_.takeFirst();
     path << m_skeleton_graph[e.m_source] << m_skeleton_graph[e.m_target];
@@ -577,10 +576,7 @@ void Skeleton::extractPath(QVector<SkeletonEdge> path_) {
         }
     }
 
-    //! Ensure path meets minimum path length requirement
-    if (path.length() > min_path_length) {
-        m_computed_geometry += path;
-    }
+    m_computed_geometry.append(path);
 }
 
 void Skeleton::inspectSkeleton(const uint& layer_num) {
@@ -640,42 +636,44 @@ void Skeleton::inspectSkeletonGraph() {
     }
 }
 
-void Skeleton::populateSegmentSettings(QSharedPointer<SettingsBase> segment_sb, const QSharedPointer<SettingsBase>& sb,
-                                       bool adapted, const Distance& adapted_width, const Velocity& adapted_speed) {
+void Skeleton::populateSegmentSettings(QSharedPointer<SettingsBase> segment_sb,
+                                       const QSharedPointer<SettingsBase>& parent_sb, bool adapted,
+                                       const Distance& adapted_width, const Velocity& adapted_speed) {
     // Populate segment settings with the provided settings base
-    segment_sb->populate(sb);
+    segment_sb->populate(parent_sb);
 
     // Set segment settings
-    segment_sb->setSetting(SS::kWidth, adapted ? adapted_width : sb->setting<Distance>(PS::Skeleton::kBeadWidth));
-    segment_sb->setSetting(SS::kSpeed, adapted ? adapted_speed : sb->setting<Velocity>(PS::Skeleton::kSpeed));
-    segment_sb->setSetting(SS::kHeight, sb->setting<Distance>(PS::Layer::kLayerHeight));
-    segment_sb->setSetting(SS::kAccel, sb->setting<Acceleration>(PRS::Acceleration::kSkeleton));
-    segment_sb->setSetting(SS::kExtruderSpeed, sb->setting<AngularVelocity>(PS::Skeleton::kExtruderSpeed));
-    segment_sb->setSetting(SS::kMaterialNumber, sb->setting<int>(MS::MultiMaterial::kPerimterNum));
+    segment_sb->setSetting(SS::kWidth,
+                           adapted ? adapted_width : parent_sb->setting<Distance>(PS::Skeleton::kBeadWidth));
+    segment_sb->setSetting(SS::kSpeed, adapted ? adapted_speed : parent_sb->setting<Velocity>(PS::Skeleton::kSpeed));
+    segment_sb->setSetting(SS::kHeight, parent_sb->setting<Distance>(PS::Layer::kLayerHeight));
+    segment_sb->setSetting(SS::kAccel, parent_sb->setting<Acceleration>(PRS::Acceleration::kSkeleton));
+    segment_sb->setSetting(SS::kExtruderSpeed, parent_sb->setting<AngularVelocity>(PS::Skeleton::kExtruderSpeed));
+    segment_sb->setSetting(SS::kMaterialNumber, parent_sb->setting<int>(MS::MultiMaterial::kSkeletonNum));
     segment_sb->setSetting(SS::kRegionType, RegionType::kSkeleton);
     segment_sb->setSetting(SS::kAdapted, adapted);
 }
 
 LSegmentList Skeleton::createSegments(const Point& start, const Point& end,
-                                      const QSharedPointer<SettingsBase>& sb) const {
+                                      const QSharedPointer<SettingsBase>& parent_sb) const {
     LSegmentList segments;
 
     // ---------- Static bead width ----------
-    if (!sb->setting<bool>(PS::Skeleton::kSkeletonAdapt)) {
+    if (!parent_sb->setting<bool>(PS::Skeleton::kSkeletonAdapt)) {
         LSegmentPtr segment = LSegmentPtr::create(start, end);
-        populateSegmentSettings(segment->getSb(), sb);
+        populateSegmentSettings(segment->getSb(), parent_sb);
         segments.append(segment);
         return segments;
     }
 
     // ---------- Adaptive bead width ----------
-    const Distance ref_width = sb->setting<Distance>(PS::Skeleton::kBeadWidth);
-    const Velocity ref_speed = sb->setting<Velocity>(PS::Skeleton::kSpeed);
+    const Distance ref_width = parent_sb->setting<Distance>(PS::Skeleton::kBeadWidth);
+    const Velocity ref_speed = parent_sb->setting<Velocity>(PS::Skeleton::kSpeed);
     const double speed_factor = ref_speed() * ref_width(); // Inverse-proportional speed factor
     const double min_speed = ref_speed() * 0.01;           // 1% of reference speed
 
     // Discretize the input segment
-    const Distance step = sb->setting<Distance>(PS::Skeleton::kSkeletonAdaptStepSize);
+    const Distance step = parent_sb->setting<Distance>(PS::Skeleton::kSkeletonAdaptStepSize);
     const int steps = std::max(1, int(std::ceil(start.distance(end)() / step())));
     const double dx = (end.x() - start.x()) / steps;
     const double dy = (end.y() - start.y()) / steps;
@@ -708,7 +706,7 @@ LSegmentList Skeleton::createSegments(const Point& start, const Point& end,
 
         // Create the subsegment and apply adapted settings
         LSegmentPtr segment = LSegmentPtr::create(pts[start_idx], pts[end_idx]);
-        populateSegmentSettings(segment->getSb(), sb, true, width, speed);
+        populateSegmentSettings(segment->getSb(), parent_sb, true, width, speed);
 
         return segment;
     };
@@ -748,7 +746,7 @@ Path Skeleton::createPathWithLocalizedSettings(const Polyline& line) {
     Path path;
 
     // Iterate through each segment of the polyline
-    for (size_t i = 0; i + 1 < line.size(); ++i) {
+    for (size_t i = 0; i < line.size() - 1; ++i) {
         const Point& start = line[i];
         const Point& end = line[i + 1];
 
@@ -773,17 +771,17 @@ Path Skeleton::createPathWithLocalizedSettings(const Polyline& line) {
             const Point mid = (p0 + p1) * 0.5;
 
             // Assign the subsegment default settings from the main settings base
-            QSharedPointer<SettingsBase> segment_sb = QSharedPointer<SettingsBase>::create(*m_sb);
+            QSharedPointer<SettingsBase> parent_sb = QSharedPointer<SettingsBase>::create(*m_sb);
 
             // Populate the subsegment settings with local settings
             for (const SettingsPolygon& polygon : m_settings_polygons) {
                 if (polygon.inside(mid)) {
-                    segment_sb->populate(polygon.getSettings());
+                    parent_sb->populate(polygon.getSettings());
                     break;
                 }
             }
 
-            for (const LSegmentPtr& segment : createSegments(p0, p1, segment_sb)) {
+            for (const LSegmentPtr& segment : createSegments(p0, p1, parent_sb)) {
                 path.append(segment);
             }
         }
@@ -796,9 +794,18 @@ QVector<Path> Skeleton::filterPath(const Path& path) {
     QVector<Path> filtered_paths;
     Path filtered_path;
 
+    const Distance& min_length = m_sb->setting<Distance>(PS::Skeleton::kMinPathLength);
+
     // Helper lambda to flush the current filtered path
     auto flushPath = [&]() {
         if (filtered_path.size() > 0) {
+            // Discard paths that do not meet the minimum length requirement
+            if (filtered_path.calculateLength() < min_length) {
+                filtered_path.clear();
+                return;
+            }
+
+            // Ensure closed paths have correct orientation
             if (filtered_path.isClosed()) {
                 filtered_path.setCCW(Polygon(filtered_path).orientation());
             }

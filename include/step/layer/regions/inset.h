@@ -1,7 +1,5 @@
-#ifndef INSET_H
-#define INSET_H
+#pragma once
 
-// Local
 #include "step/layer/regions/region_base.h"
 
 namespace ORNL {
@@ -40,9 +38,7 @@ class Inset : public RegionBase {
     //! \brief Sets the single path geometry
     //! \param sp_geometry: the new geometry
     void setSinglePathGeometry(QVector<SinglePath::PolygonList> sp_geometry);
-#endif
 
-#ifdef HAVE_SINGLE_PATH
     //! \brief Creates single paths for this region, plus any connected ones from insets
     void createSinglePaths();
 #endif
@@ -83,5 +79,3 @@ class Inset : public RegionBase {
     QVector<Path> m_inner_most_path_set;
 };
 } // namespace ORNL
-
-#endif // INSET_H

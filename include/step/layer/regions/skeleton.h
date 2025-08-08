@@ -137,24 +137,26 @@ class Skeleton : public RegionBase {
     /**
      * @brief Populates the segment settings with local settings.
      * @param[in,out] segment_sb: The segment settings base to populate.
-     * @param[in] sb: The settings base to apply.
+     * @param[in] parent_sb: The parent settings base to apply.
      * @param[in] adapted: Whether or not the segment is adapted.
      * @param[in] adapted_width: The adapted width to apply if the segment is adapted.
      * @param[in] adapted_speed: The adapted speed to apply if the segment is adapted.
      * @note If adapted is true, adapted_width and adapted_speed must be provided.
      */
-    static void populateSegmentSettings(QSharedPointer<SettingsBase> segment_sb, const QSharedPointer<SettingsBase>& sb,
-                                        bool adapted = false, const Distance& adapted_width = Distance(),
+    static void populateSegmentSettings(QSharedPointer<SettingsBase> segment_sb,
+                                        const QSharedPointer<SettingsBase>& parent_sb, bool adapted = false,
+                                        const Distance& adapted_width = Distance(),
                                         const Velocity& adapted_speed = Velocity());
 
     /**
      * @brief Create segments from a start and end point with the given settings base.
      * @param[in] start: The start point of the segment.
      * @param[in] end: The end point of the segment.
-     * @param[in] sb: The settings base to apply to the segment.
+     * @param[in] parent_sb: The settings base to apply to the segments.
      * @return A list of segments created from the start and end points.
      */
-    LSegmentList createSegments(const Point& start, const Point& end, const QSharedPointer<SettingsBase>& sb) const;
+    LSegmentList createSegments(const Point& start, const Point& end,
+                                const QSharedPointer<SettingsBase>& parent_sb) const;
 
     /**
      * @brief Create a path from a polyline.
