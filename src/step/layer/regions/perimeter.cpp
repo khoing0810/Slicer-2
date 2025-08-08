@@ -318,11 +318,6 @@ void Perimeter::createSinglePaths() {
 }
 #endif
 
-void Perimeter::setLayerCount(uint layer_count) {
-    m_layer_count = layer_count;
-    m_layer_count--;
-}
-
 QVector<Path>& Perimeter::getOuterMostPathSet() { return m_outer_most_path_set; }
 
 QVector<Path>& Perimeter::getInnerMostPathSet() { return m_inner_most_path_set; }

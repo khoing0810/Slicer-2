@@ -115,14 +115,6 @@ class Path {
     //! \return whether or not path is ccw
     bool getCCW();
 
-    //! \brief Sets whether or not path contains origin (assuming it is closed)
-    //! \param contains: whether or not origin is contained within path
-    void setContainsOrigin(bool contains);
-
-    //! \brief Gets whether or not path contains origin (assuming it is closed)
-    //! \return whether or not path contains origin
-    bool getContainsOrigin();
-
     //! \brief Adds an extruder/nozzle number to the list of extruders that should
     //!        be on with this path prints
     //! \param extruder/nozzle number, indexed at 0
@@ -136,6 +128,6 @@ class Path {
     QList<QSharedPointer<SegmentBase>> m_segments;
 
     //! \brief Bools for whether or not path is counter-clockwise or contains origin
-    bool m_ccw, m_contains_origin;
+    bool m_ccw;
 };
 } // namespace ORNL

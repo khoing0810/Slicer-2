@@ -45,10 +45,6 @@ class Perimeter : public RegionBase {
     void createSinglePaths();
 #endif
 
-    //! \brief Sets the layer count
-    //! \param layer_count: The total number of layers contained within the part that this region belongs to
-    void setLayerCount(uint layer_count);
-
     //!\brief Returns the set of paths representing the outermost contours
     //! \return a list of paths of outermost perimeter contours
     QVector<Path>& getOuterMostPathSet();
@@ -99,9 +95,6 @@ class Perimeter : public RegionBase {
     //! \brief Holds the last set of perimeter generated to provide for later
     //! optimizations and path modifiers
     QVector<Path> m_inner_most_path_set;
-
-    //! \brief Holds the total number of layers contained within the part that this region belongs to
-    uint m_layer_count;
 
     //! \brief Holds the layer number that we are currently on
     uint m_layer_num;

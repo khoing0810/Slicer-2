@@ -1,6 +1,8 @@
 
 #include "threading/slicers/polymer_slicer.h"
 
+#include "QtCore/QDir"
+#include "QtCore/QSharedPointer"
 #include "managers/session_manager.h"
 #include "managers/settings/settings_manager.h"
 #include "optimizers/layer_order_optimizer.h"
@@ -15,9 +17,6 @@
 #include "step/layer/regions/infill.h"
 #include "step/layer/regions/perimeter.h"
 #include "step/layer/regions/skin.h"
-
-#include <QtCore/QDir>
-#include <QtCore/QSharedPointer>
 
 namespace ORNL {
 
@@ -290,7 +289,6 @@ void PolymerSlicer::processPerimeter(QSharedPointer<Part> part, int part_start, 
                 for (QSharedPointer<IslandBase> isl : layer->getIslands()) {
                     QSharedPointer<Perimeter> perimeter =
                         isl->getRegion(RegionType::kPerimeter).dynamicCast<Perimeter>();
-                    perimeter->setLayerCount(last_layer_count);
                 }
             }
         }

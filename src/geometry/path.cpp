@@ -123,10 +123,6 @@ void Path::setCCW(bool ccw) { m_ccw = ccw; }
 
 bool Path::getCCW() { return m_ccw; }
 
-void Path::setContainsOrigin(bool contains) { m_contains_origin = contains; }
-
-bool Path::getContainsOrigin() { return m_contains_origin; }
-
 void Path::addNozzle(int nozzle) {
     for (QSharedPointer<SegmentBase> segment : getSegments()) {
         segment->addNozzle(nozzle);
