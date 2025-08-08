@@ -1,14 +1,9 @@
-#ifndef PART_VIEW_H
-#define PART_VIEW_H
+#pragma once
 
-// Qt
-#include <QElapsedTimer>
-
-// Local
+#include "QElapsedTimer"
 #include "configs/settings_base.h"
 #include "graphics/base_view.h"
 #include "part/part.h"
-#include "units/unit.h"
 
 namespace ORNL {
 // Forward
@@ -280,4 +275,3 @@ class PartView : public BaseView {
     QSharedPointer<SettingsBase> m_sb;
 };
 } // namespace ORNL
-#endif // PART_VIEW_H

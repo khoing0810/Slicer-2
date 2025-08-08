@@ -18,23 +18,21 @@ QString ScanLayer::writeGCode(QSharedPointer<WriterBase> writer) {
     for (QSharedPointer<IslandBase> island : m_islands) {
         gcode += writer->writeBeforeScan(
             island->getGeometry().min(), island->getGeometry().max(), m_layer_num, index,
-            static_cast<Axis>(
-                island->getSb()->setting<int>(Constants::ProfileSettings::LaserScanner::kOrientationAxis)),
-            island->getSb()->setting<Angle>(Constants::ProfileSettings::LaserScanner::kOrientationAngle));
+            static_cast<Axis>(island->getSb()->setting<int>(PS::LaserScanner::kOrientationAxis)),
+            island->getSb()->setting<Angle>(PS::LaserScanner::kOrientationAngle));
 
         gcode += island->writeGCode(writer);
 
         if (m_layer_num == 0) {
             gcode += writer->writeAfterScan(
-                0,
-                island->getSb()->setting<Distance>(Constants::ProfileSettings::LaserScanner::kLaserScannerStepDistance),
-                island->getSb()->setting<Distance>(Constants::ProfileSettings::LaserScanner::kLaserScanLineResolution));
+                0, island->getSb()->setting<Distance>(PS::LaserScanner::kLaserScannerStepDistance),
+                island->getSb()->setting<Distance>(PS::LaserScanner::kLaserScanLineResolution));
         }
         else {
-            gcode += writer->writeAfterScan(
-                island->getSb()->setting<Distance>(Constants::ProfileSettings::Layer::kBeadWidth),
-                island->getSb()->setting<Distance>(Constants::ProfileSettings::LaserScanner::kLaserScannerStepDistance),
-                island->getSb()->setting<Distance>(Constants::ProfileSettings::LaserScanner::kLaserScanLineResolution));
+            gcode +=
+                writer->writeAfterScan(island->getSb()->setting<Distance>(PS::Layer::kBeadWidth),
+                                       island->getSb()->setting<Distance>(PS::LaserScanner::kLaserScannerStepDistance),
+                                       island->getSb()->setting<Distance>(PS::LaserScanner::kLaserScanLineResolution));
         }
         ++index;
     }
@@ -45,10 +43,8 @@ QString ScanLayer::writeGCode(QSharedPointer<WriterBase> writer) {
         QTextStream stream(&file);
 
         Point widthHeight = m_geometry.max() - m_geometry.min();
-        Distance stepDistance =
-            getSb()->setting<Distance>(Constants::ProfileSettings::LaserScanner::kLaserScannerStepDistance);
-        Distance lineResolution =
-            getSb()->setting<Distance>(Constants::ProfileSettings::LaserScanner::kLaserScanLineResolution);
+        Distance stepDistance = getSb()->setting<Distance>(PS::LaserScanner::kLaserScannerStepDistance);
+        Distance lineResolution = getSb()->setting<Distance>(PS::LaserScanner::kLaserScanLineResolution);
 
         stream << "P||" % QString::number(Distance(m_geometry.min().x()).to(mm), 'f', 4) % '|' %
                       QString::number(Distance(m_geometry.min().y()).to(mm), 'f', 4) % '|' %
@@ -92,10 +88,8 @@ void ScanLayer::connectPaths(Point& start, int& start_index, QVector<QSharedPoin
             QSharedPointer<TravelSegment> newSegment;
             if (m_first_connect) {
                 if (m_layer_num == 0) {
-                    Distance z_offset = island->getSb()->setting<Distance>(
-                                            Constants::ProfileSettings::LaserScanner::kLaserScannerHeight) -
-                                        island->getSb()->setting<Distance>(
-                                            Constants::ProfileSettings::LaserScanner::kLaserScannerHeightOffset);
+                    Distance z_offset = island->getSb()->setting<Distance>(PS::LaserScanner::kLaserScannerHeight) -
+                                        island->getSb()->setting<Distance>(PS::LaserScanner::kLaserScannerHeightOffset);
 
                     start.z(-z_offset);
                 }
@@ -106,9 +100,8 @@ void ScanLayer::connectPaths(Point& start, int& start_index, QVector<QSharedPoin
                 newSegment = QSharedPointer<TravelSegment>::create(start, region->getPaths().first().front()->start());
             }
 
-            newSegment->getSb()->setSetting(Constants::SegmentSettings::kRegionType, RegionType::kLaserScan);
-            newSegment->getSb()->setSetting(Constants::SegmentSettings::kSpeed,
-                                            m_sb->setting<Velocity>(Constants::ProfileSettings::Travel::kSpeed));
+            newSegment->getSb()->setSetting(SS::kRegionType, RegionType::kLaserScan);
+            newSegment->getSb()->setSetting(SS::kSpeed, m_sb->setting<Velocity>(PS::Travel::kSpeed));
             region->getPaths().first().prepend(newSegment);
             newEnd = region->getPaths().last().back()->end();
         }
@@ -141,12 +134,11 @@ void ScanLayer::unorient() {
         for (QSharedPointer<IslandBase> island : m_islands) {
 
             Point m_half_shift = m_shift_amount;
-            Distance scan_height =
-                island->getSb()->setting<Distance>(Constants::ProfileSettings::LaserScanner::kLaserScannerHeight) -
-                island->getSb()->setting<Distance>(Constants::ProfileSettings::LaserScanner::kLaserScannerHeightOffset);
+            Distance scan_height = island->getSb()->setting<Distance>(PS::LaserScanner::kLaserScannerHeight) -
+                                   island->getSb()->setting<Distance>(PS::LaserScanner::kLaserScannerHeightOffset);
 
-            m_half_shift.x(m_half_shift.x() - m_sb->setting<double>(Constants::PrinterSettings::Dimensions::kXOffset));
-            m_half_shift.y(m_half_shift.y() - m_sb->setting<double>(Constants::PrinterSettings::Dimensions::kYOffset));
+            m_half_shift.x(m_half_shift.x() - m_sb->setting<double>(PRS::Dimensions::kXOffset));
+            m_half_shift.y(m_half_shift.y() - m_sb->setting<double>(PRS::Dimensions::kYOffset));
             m_half_shift.z(m_shift_amount.z() + scan_height);
 
             // rotate and then shift every island in the layer
@@ -172,11 +164,11 @@ void ScanLayer::reorient() {
     // raise the layer by half the layer height, because cross-sections are taken at the center of a layer
     // but the path for the extruder should be at a full layer height
     Point m_half_shift = m_shift_amount;
-    Distance scan_height = m_sb->setting<Distance>(Constants::ProfileSettings::LaserScanner::kLaserScannerHeight) -
-                           m_sb->setting<Distance>(Constants::ProfileSettings::LaserScanner::kLaserScannerHeightOffset);
+    Distance scan_height = m_sb->setting<Distance>(PS::LaserScanner::kLaserScannerHeight) -
+                           m_sb->setting<Distance>(PS::LaserScanner::kLaserScannerHeightOffset);
 
-    m_half_shift.x(m_half_shift.x() - m_sb->setting<double>(Constants::PrinterSettings::Dimensions::kXOffset));
-    m_half_shift.y(m_half_shift.y() - m_sb->setting<double>(Constants::PrinterSettings::Dimensions::kYOffset));
+    m_half_shift.x(m_half_shift.x() - m_sb->setting<double>(PRS::Dimensions::kXOffset));
+    m_half_shift.y(m_half_shift.y() - m_sb->setting<double>(PRS::Dimensions::kYOffset));
     m_half_shift.z(m_shift_amount.z() + scan_height);
 
     // rotate and then shift every island in the layer

@@ -1,5 +1,4 @@
-#ifndef GCODEMETA_H
-#define GCODEMETA_H
+#pragma once
 
 #include "utilities/enums.h"
 
@@ -251,7 +250,7 @@ static GcodeMeta ORNLMetricMeta = {GcodeSyntax::kCincinnati,
                                    ".gcode"};
 static GcodeMeta TormachMeta = {GcodeSyntax::kTormach,
                                 QString(";"), // starting_delim
-                                QString(""), // ending_delim
+                                QString(""),  // ending_delim
                                 mm,
                                 s,
                                 degree,
@@ -347,5 +346,3 @@ static QHash<int, GcodeMeta> createMapping() {
 static QHash<int, GcodeMeta> SyntaxToMetaHash = createMapping();
 } // namespace GcodeMetaList
 } // namespace ORNL
-
-#endif // GCODEMETA_H

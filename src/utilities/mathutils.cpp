@@ -513,18 +513,9 @@ double clamp(double min, double val, double max) {
 
 double snap(double val, double interval) {
     double half_interval = interval / 2;
-    if (val < 0)
+    if (val < 0) {
         half_interval = -half_interval;
-
-    /*
-    qDebug() << "Interval" << interval;
-    qDebug() << "Value" << val;
-    qDebug() << "Half Interval" << half_interval;
-    qDebug() << "Value + HI" << val + half_interval;
-    qDebug() << "INT Value + HI" << (int)(val + half_interval);
-    qDebug() << "INT Value + HI / Interval" << ((int)(val + half_interval)) / interval;
-    qDebug() << "(INT Value + Hi / I) * I" << (((int)(val + half_interval)) / interval) * interval;
-    */
+    }
 
     return (((int)(val + half_interval)) / (int)interval) * interval;
 }

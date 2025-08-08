@@ -1,5 +1,13 @@
 #include "windows/gcode_export.h"
 
+#include "QDir"
+#include "QDirIterator"
+#include "QFileDialog"
+#include "QGroupBox"
+#include "QInputDialog"
+#include "QLabel"
+#include "QMessageBox"
+#include "QStringBuilder"
 #include "managers/session_manager.h"
 #include "managers/settings/settings_manager.h"
 #include "threading/gcode_adamantine_saver.h"
@@ -10,15 +18,6 @@
 #include "threading/gcode_sandia_saver.h"
 #include "threading/gcode_simulation_output.h"
 #include "threading/gcode_tormach_saver.h"
-
-#include <QDir>
-#include <QDirIterator>
-#include <QFileDialog>
-#include <QGroupBox>
-#include <QInputDialog>
-#include <QLabel>
-#include <QMessageBox>
-#include <QStringBuilder>
 
 namespace ORNL {
 
@@ -157,21 +156,20 @@ void GcodeExport::exportGcode() {
         // Insert comment start/end characters to the description
         QString description = m_description_input->toPlainText();
         int lineEnd = 0;
-        while(lineEnd > -1)
-        {
-            if (lineEnd + 1 < description.length()) // Check to make sure lineEnd + 1 exists before potentially trying to access it
+        while (lineEnd > -1) {
+            if (lineEnd + 1 <
+                description.length()) // Check to make sure lineEnd + 1 exists before potentially trying to access it
             {
                 lineEnd = description.indexOf("\n", lineEnd);
-                if(lineEnd > -1) // "\n" is found, -1 means not found
+                if (lineEnd > -1) // "\n" is found, -1 means not found
                 {
                     description.insert(lineEnd, m_most_recent_meta.m_comment_ending_delimiter);
                     lineEnd = description.indexOf("\n", lineEnd);
                     description.insert(lineEnd + 1, m_most_recent_meta.m_comment_starting_delimiter);
-                    lineEnd ++; // Increment lineEnd so that the next search doesn't find the same result
+                    lineEnd++; // Increment lineEnd so that the next search doesn't find the same result
                 }
             }
-            else
-            {
+            else {
                 break;
             }
         }
@@ -179,8 +177,8 @@ void GcodeExport::exportGcode() {
         // Add header information to the gcode file
         text.prepend(m_most_recent_meta.m_comment_starting_delimiter % "Sliced by: " % m_operator_input->text() %
                      m_most_recent_meta.m_comment_ending_delimiter % "\n" %
-                     m_most_recent_meta.m_comment_starting_delimiter % "Slicing notes: " %
-                     description % m_most_recent_meta.m_comment_ending_delimiter % "\n");
+                     m_most_recent_meta.m_comment_starting_delimiter % "Slicing notes: " % description %
+                     m_most_recent_meta.m_comment_ending_delimiter % "\n");
 
         if (m_auxiliary_file_checkbox->isChecked()) {
             if (CSM->sensorFilesGenerated()) {
@@ -249,13 +247,10 @@ void GcodeExport::exportGcode() {
         }
 
         if (m_most_recent_meta == GcodeMetaList::RPBFMeta) {
-            Angle clockAngle =
-                GSM->getGlobal()->setting<Angle>(Constants::ExperimentalSettings::RPBFSlicing::kClockingAngle);
+            Angle clockAngle = GSM->getGlobal()->setting<Angle>(ES::RPBFSlicing::kClockingAngle);
 
-            bool use_sector_offsetting =
-                GSM->getGlobal()->setting<bool>(Constants::ExperimentalSettings::RPBFSlicing::kSectorOffsettingEnable);
-            Angle sector_width =
-                GSM->getGlobal()->setting<Angle>(Constants::ExperimentalSettings::RPBFSlicing::kSectorSize);
+            bool use_sector_offsetting = GSM->getGlobal()->setting<bool>(ES::RPBFSlicing::kSectorOffsettingEnable);
+            Angle sector_width = GSM->getGlobal()->setting<Angle>(ES::RPBFSlicing::kSectorSize);
 
             GCodeRPBFSaver* saver = new GCodeRPBFSaver(m_location, filepath, gcodeFileName, text, m_most_recent_meta,
                                                        clockAngle(), use_sector_offsetting, sector_width);
@@ -266,7 +261,7 @@ void GcodeExport::exportGcode() {
         }
         else if ((m_most_recent_meta == GcodeMetaList::MarlinMeta ||
                   m_most_recent_meta == GcodeMetaList::CincinnatiMeta) &&
-                 GSM->getGlobal()->setting<bool>(Constants::ExperimentalSettings::FileOutput::kSimulationOutput)) {
+                 GSM->getGlobal()->setting<bool>(ES::FileOutput::kSimulationOutput)) {
             GCodeSimulationOutput* saver =
                 new GCodeSimulationOutput(m_location, filepath, gcodeFileName, text, m_most_recent_meta);
             connect(saver, &GCodeSimulationOutput::finished, saver, &GCodeSimulationOutput::deleteLater);
@@ -275,7 +270,7 @@ void GcodeExport::exportGcode() {
             saver->start();
         }
         else if (m_most_recent_meta == GcodeMetaList::MeldMeta &&
-                 GSM->getGlobal()->setting<bool>(Constants::ExperimentalSettings::FileOutput::kMeldCompanionOutput)) {
+                 GSM->getGlobal()->setting<bool>(ES::FileOutput::kMeldCompanionOutput)) {
             GCodeMeldSaver* saver = new GCodeMeldSaver(m_location, filepath, gcodeFileName, text, m_most_recent_meta);
             connect(saver, &GCodeMeldSaver::finished, saver, &GCodeMeldSaver::deleteLater);
             connect(saver, &GCodeMeldSaver::finished, this,
@@ -283,7 +278,7 @@ void GcodeExport::exportGcode() {
             saver->start();
         }
         else if (m_most_recent_meta == GcodeMetaList::TormachMeta &&
-                 GSM->getGlobal()->setting<bool>(Constants::ExperimentalSettings::FileOutput::kTormachOutput)) {
+                 GSM->getGlobal()->setting<bool>(ES::FileOutput::kTormachOutput)) {
             GCodeTormachSaver* saver =
                 new GCodeTormachSaver(m_location, filepath, gcodeFileName, text, m_most_recent_meta);
             connect(saver, &GCodeTormachSaver::finished, saver, &GCodeTormachSaver::deleteLater);
@@ -292,7 +287,7 @@ void GcodeExport::exportGcode() {
             saver->start();
         }
         else if (m_most_recent_meta == GcodeMetaList::AML3DMeta &&
-                 GSM->getGlobal()->setting<bool>(Constants::ExperimentalSettings::FileOutput::kAML3DOutput)) {
+                 GSM->getGlobal()->setting<bool>(ES::FileOutput::kAML3DOutput)) {
             GCodeAML3DSaver* saver = new GCodeAML3DSaver(m_location, filepath, gcodeFileName, text, m_most_recent_meta);
             connect(saver, &GCodeAML3DSaver::finished, saver, &GCodeAML3DSaver::deleteLater);
             connect(saver, &GCodeAML3DSaver::finished, this,
@@ -300,7 +295,7 @@ void GcodeExport::exportGcode() {
             saver->start();
         }
         else if (m_most_recent_meta == GcodeMetaList::SandiaMeta &&
-                 GSM->getGlobal()->setting<bool>(Constants::ExperimentalSettings::FileOutput::kSandiaOutput)) {
+                 GSM->getGlobal()->setting<bool>(ES::FileOutput::kSandiaOutput)) {
             GCodeSandiaSaver* saver =
                 new GCodeSandiaSaver(m_location, filepath, gcodeFileName, text, m_most_recent_meta);
             connect(saver, &GCodeSandiaSaver::finished, saver, &GCodeSandiaSaver::deleteLater);
@@ -309,7 +304,7 @@ void GcodeExport::exportGcode() {
             saver->start();
         }
         else if (m_most_recent_meta == GcodeMetaList::MarlinMeta &&
-                 GSM->getGlobal()->setting<bool>(Constants::ExperimentalSettings::FileOutput::kMarlinOutput)) {
+                 GSM->getGlobal()->setting<bool>(ES::FileOutput::kMarlinOutput)) {
             GCodeMarlinSaver* saver =
                 new GCodeMarlinSaver(m_location, filepath, gcodeFileName, text, m_most_recent_meta);
             connect(saver, &GCodeMarlinSaver::finished, saver, &GCodeMarlinSaver::deleteLater);

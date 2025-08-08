@@ -1,5 +1,4 @@
-#ifndef MATHUTILS_H
-#define MATHUTILS_H
+#pragma once
 
 #include "geometry/plane.h"
 #include "geometry/point.h"
@@ -275,4 +274,3 @@ double clamp(double min, double val, double max);
 QVector3D sphericalToCartesian(float rho, float theta, float phi);
 } // namespace MathUtils
 } // namespace ORNL
-#endif // MATHUTILS_H

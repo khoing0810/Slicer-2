@@ -1,7 +1,4 @@
-#ifndef ALGORITHM_H
-#define ALGORITHM_H
-
-#include <QSharedPointer>
+#pragma once
 
 namespace ORNL {
 /*!
@@ -30,5 +27,3 @@ class AlgorithmBase {
     virtual void executeCPU() = 0;
 };
 } // namespace ORNL
-
-#endif // ALGORITHM_H

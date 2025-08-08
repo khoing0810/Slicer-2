@@ -1,13 +1,13 @@
 
 #include "graphics/support/shape_factory.h"
 
+#include "QMatrix4x4"
+#include "QtMath"
 #include "geometry/segments/bezier.h"
 #include "managers/settings/settings_manager.h"
 #include "utilities/constants.h"
 #include "utilities/mathutils.h"
 
-#include <QMatrix4x4>
-#include <QtMath>
 #include <vector>
 
 #include <math.h>
@@ -1731,9 +1731,9 @@ QMatrix4x4 ShapeFactory::computeGcodeCylinderTransform(const QVector3D& start, c
     QVector3D tangent = end.normalized();
 
     // Retrieve the normal (up) vector from the global settings
-    QVector3D normal = {GSM->getGlobal()->setting<float>(Constants::ProfileSettings::SlicingVector::kSlicingVectorX),
-                        GSM->getGlobal()->setting<float>(Constants::ProfileSettings::SlicingVector::kSlicingVectorY),
-                        GSM->getGlobal()->setting<float>(Constants::ProfileSettings::SlicingVector::kSlicingVectorZ)};
+    QVector3D normal = {GSM->getGlobal()->setting<float>(PS::SlicingVector::kSlicingVectorX),
+                        GSM->getGlobal()->setting<float>(PS::SlicingVector::kSlicingVectorY),
+                        GSM->getGlobal()->setting<float>(PS::SlicingVector::kSlicingVectorZ)};
     normal.normalize();
 
     // Compute the right vector

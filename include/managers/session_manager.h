@@ -1,13 +1,9 @@
-#ifndef SESSIONMANAGER_H
-#define SESSIONMANAGER_H
+#pragma once
 
-// Qt
-#include <QDir>
-#include <QFile>
-#include <QQueue>
-#include <QStandardPaths>
-
-// Local
+#include "QDir"
+#include "QFile"
+#include "QQueue"
+#include "QStandardPaths"
 #include "data_stream.h"
 #include "external_files/external_grid.h"
 #include "part/part.h"
@@ -338,5 +334,3 @@ class SessionManager : public QObject {
     QVector<bool> m_step_connectivity;
 };
 } // namespace ORNL
-
-#endif // SESSIONMANAGER_H

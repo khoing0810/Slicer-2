@@ -1,7 +1,5 @@
-#ifndef SKIN_H
-#define SKIN_H
+#pragma once
 
-// Local
 #include "optimizers/polyline_order_optimizer.h"
 #include "step/layer/regions/region_base.h"
 
@@ -121,5 +119,3 @@ class Skin : public RegionBase {
     // QVector<QVector<Path>> m_gradual_paths;
 };
 } // namespace ORNL
-
-#endif // SKIN_H

@@ -5,9 +5,8 @@
 #include "geometry/mesh/open_mesh.h"
 #include "managers/session_manager.h"
 #include "managers/settings/settings_manager.h"
+#include "slicing/slicing_utilities.h"
 #include "utilities/mathutils.h"
-
-#include <slicing/slicing_utilities.h>
 
 namespace ORNL {
 Preprocessor::Preprocessor(bool use_cgal_cross_section) {
@@ -103,9 +102,9 @@ void Preprocessor::processInital() {
     int previous_buffer_size = 0;
     int future_buffer_size = 0;
 
-    if (GSM->getGlobal()->setting<bool>(Constants::ProfileSettings::Skin::kEnable)) {
-        future_buffer_size = GSM->getGlobal()->setting<int>(Constants::ProfileSettings::Skin::kTopCount);
-        previous_buffer_size = GSM->getGlobal()->setting<int>(Constants::ProfileSettings::Skin::kBottomCount);
+    if (GSM->getGlobal()->setting<bool>(PS::Skin::kEnable)) {
+        future_buffer_size = GSM->getGlobal()->setting<int>(PS::Skin::kTopCount);
+        previous_buffer_size = GSM->getGlobal()->setting<int>(PS::Skin::kBottomCount);
     }
 
     // Always buffer at least one layer
@@ -147,7 +146,7 @@ void Preprocessor::processInital() {
         }
 
         ActivePartMeta new_part_meta(part, part_sb);
-        new_part_meta.consuming = !part_sb->setting<bool>(Constants::MaterialSettings::PlatformAdhesion::kRaftEnable);
+        new_part_meta.consuming = !part_sb->setting<bool>(MS::PlatformAdhesion::kRaftEnable);
         m_active_parts.insert(part->name(), new_part_meta);
     }
 }
@@ -157,8 +156,7 @@ bool Preprocessor::processNext() {
     bool steps_created = false;
     QVector<QPair<QSharedPointer<Part>, QSharedPointer<BufferedSlicer>>> min_slicers;
 
-    LayerOrdering order_method =
-        global_sb->setting<LayerOrdering>(Constants::ExperimentalSettings::PrinterConfig::kLayerOrdering);
+    LayerOrdering order_method = global_sb->setting<LayerOrdering>(ES::PrinterConfig::kLayerOrdering);
     if (order_method == LayerOrdering::kByHeight) {
         Plane min_plane;
         Distance min_distance = std::numeric_limits<double>::max();

@@ -1,17 +1,12 @@
-#ifndef GCODE_VIEW_H
-#define GCODE_VIEW_H
+#pragma once
 
-// Qt
-#include <QVector>
-
-// Local
+#include "QVector"
 #include "configs/settings_base.h"
 #include "geometry/segment_base.h"
 #include "graphics/base_view.h"
 #include "graphics/objects/gcode_object.h"
 #include "widgets/gcode_info_control.h"
-
-#include <widgets/part_widget/model/part_meta_model.h>
+#include "widgets/part_widget/model/part_meta_model.h"
 
 namespace ORNL {
 // Forward
@@ -172,5 +167,3 @@ class GCodeView : public BaseView {
     QSharedPointer<GCodeInfoControl> m_segment_info_control;
 };
 } // namespace ORNL
-
-#endif // GCODE_VIEW_H

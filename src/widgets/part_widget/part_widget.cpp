@@ -1,13 +1,12 @@
 #include "widgets/part_widget/part_widget.h"
 
+#include "QFileDialog"
+#include "QMessageBox"
 #include "graphics/view/part_view.h"
 #include "managers/preferences_manager.h"
 #include "managers/session_manager.h"
 #include "managers/settings/settings_manager.h"
 #include "utilities/mathutils.h"
-
-#include <QFileDialog>
-#include <QMessageBox>
 
 namespace ORNL {
 PartWidget::PartWidget(QWidget* parent) : QWidget(parent) { this->setupWidget(); }
@@ -102,47 +101,45 @@ void PartWidget::resetZoom() { m_part_view->resetZoom(); }
 void PartWidget::resetCamera() { m_part_view->resetCamera(); }
 
 void PartWidget::handleModifiedSetting(const QString& setting_key) {
-    static const auto printer_settings = QSet<QString> {Constants::PrinterSettings::Dimensions::kXMin,
-                                                        Constants::PrinterSettings::Dimensions::kXMax,
-                                                        Constants::PrinterSettings::Dimensions::kYMin,
-                                                        Constants::PrinterSettings::Dimensions::kYMax,
-                                                        Constants::PrinterSettings::Dimensions::kZMin,
-                                                        Constants::PrinterSettings::Dimensions::kZMax,
-                                                        Constants::PrinterSettings::Dimensions::kXOffset,
-                                                        Constants::PrinterSettings::Dimensions::kYOffset,
-                                                        Constants::PrinterSettings::Dimensions::kWMin,
-                                                        Constants::PrinterSettings::Dimensions::kWMax,
-                                                        Constants::PrinterSettings::Dimensions::kBuildVolumeType,
-                                                        Constants::PrinterSettings::Dimensions::kInnerRadius,
-                                                        Constants::PrinterSettings::Dimensions::kOuterRadius,
-                                                        Constants::PrinterSettings::Dimensions::kEnableW,
-                                                        Constants::PrinterSettings::Dimensions::kEnableGridX,
-                                                        Constants::PrinterSettings::Dimensions::kGridXDistance,
-                                                        Constants::PrinterSettings::Dimensions::kGridXOffset,
-                                                        Constants::PrinterSettings::Dimensions::kEnableGridY,
-                                                        Constants::PrinterSettings::Dimensions::kGridYDistance,
-                                                        Constants::PrinterSettings::Dimensions::kGridYOffset};
+    static const auto printer_settings = QSet<QString> {PRS::Dimensions::kXMin,
+                                                        PRS::Dimensions::kXMax,
+                                                        PRS::Dimensions::kYMin,
+                                                        PRS::Dimensions::kYMax,
+                                                        PRS::Dimensions::kZMin,
+                                                        PRS::Dimensions::kZMax,
+                                                        PRS::Dimensions::kXOffset,
+                                                        PRS::Dimensions::kYOffset,
+                                                        PRS::Dimensions::kWMin,
+                                                        PRS::Dimensions::kWMax,
+                                                        PRS::Dimensions::kBuildVolumeType,
+                                                        PRS::Dimensions::kInnerRadius,
+                                                        PRS::Dimensions::kOuterRadius,
+                                                        PRS::Dimensions::kEnableW,
+                                                        PRS::Dimensions::kEnableGridX,
+                                                        PRS::Dimensions::kGridXDistance,
+                                                        PRS::Dimensions::kGridXOffset,
+                                                        PRS::Dimensions::kEnableGridY,
+                                                        PRS::Dimensions::kGridYDistance,
+                                                        PRS::Dimensions::kGridYOffset};
 
-    static const auto material_settings = QSet<QString> {Constants::ProfileSettings::SlicingVector::kSlicingVectorX,
-                                                         Constants::ProfileSettings::SlicingVector::kSlicingVectorY,
-                                                         Constants::ProfileSettings::SlicingVector::kSlicingVectorZ};
+    static const auto material_settings = QSet<QString> {
+        PS::SlicingVector::kSlicingVectorX, PS::SlicingVector::kSlicingVectorY, PS::SlicingVector::kSlicingVectorZ};
 
-    static const auto optimization_settings =
-        QSet<QString> {Constants::ProfileSettings::Optimizations::kIslandOrder,
-                       Constants::ProfileSettings::Optimizations::kCustomIslandXLocation,
-                       Constants::ProfileSettings::Optimizations::kCustomIslandYLocation,
-                       Constants::ProfileSettings::Optimizations::kPathOrder,
-                       Constants::ProfileSettings::Optimizations::kCustomPathXLocation,
-                       Constants::ProfileSettings::Optimizations::kCustomPathYLocation,
-                       Constants::ProfileSettings::Optimizations::kCustomPointXLocation,
-                       Constants::ProfileSettings::Optimizations::kCustomPointYLocation,
-                       Constants::ProfileSettings::Optimizations::kEnableSecondCustomLocation,
-                       Constants::ProfileSettings::Optimizations::kCustomPointSecondXLocation,
-                       Constants::ProfileSettings::Optimizations::kCustomPointSecondYLocation,
-                       Constants::PrinterSettings::Dimensions::kXOffset,
-                       Constants::PrinterSettings::Dimensions::kYOffset};
+    static const auto optimization_settings = QSet<QString> {PS::Optimizations::kIslandOrder,
+                                                             PS::Optimizations::kCustomIslandXLocation,
+                                                             PS::Optimizations::kCustomIslandYLocation,
+                                                             PS::Optimizations::kPathOrder,
+                                                             PS::Optimizations::kCustomPathXLocation,
+                                                             PS::Optimizations::kCustomPathYLocation,
+                                                             PS::Optimizations::kCustomPointXLocation,
+                                                             PS::Optimizations::kCustomPointYLocation,
+                                                             PS::Optimizations::kEnableSecondCustomLocation,
+                                                             PS::Optimizations::kCustomPointSecondXLocation,
+                                                             PS::Optimizations::kCustomPointSecondYLocation,
+                                                             PRS::Dimensions::kXOffset,
+                                                             PRS::Dimensions::kYOffset};
 
-    static const auto overhang_settings = QSet<QString> {Constants::ProfileSettings::Support::kThresholdAngle};
+    static const auto overhang_settings = QSet<QString> {PS::Support::kThresholdAngle};
 
     if (printer_settings.contains(setting_key)) {
         m_part_view->updatePrinterSettings(GSM->getGlobal());
@@ -374,9 +371,9 @@ void PartWidget::setupEvents() {
     connect(m_model.get(), &PartMetaModel::transformUpdate, this, &PartWidget::modelTransformationUpdate);
 
     // PrefManager -> PartWidget : Connect unit updates with the update functions in this class.
-    connect(PM.get(), &PreferencesManager::distanceUnitChanged, this,
+    connect(PreferencesManager::getInstance().get(), &PreferencesManager::distanceUnitChanged, this,
             [this](Distance new_unit, Distance old_unit) { m_toolbar->updateTranslationUnits(new_unit, old_unit); });
-    connect(PM.get(), &PreferencesManager::angleUnitChanged, this,
+    connect(PreferencesManager::getInstance().get(), &PreferencesManager::angleUnitChanged, this,
             [this](Angle new_unit, Angle old_unit) { m_toolbar->updateAngleUnits(new_unit, old_unit); });
 
     // Connect the part toolbar to the part view

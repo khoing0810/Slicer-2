@@ -1,4 +1,3 @@
-
 #include "step/layer/regions/skeleton.h"
 
 #include "boost/graph/undirected_dfs.hpp"
@@ -684,7 +683,6 @@ LSegmentList Skeleton::createSegments(const Point& start, const Point& end,
     QVector<Distance> bw;
     bw.reserve(steps + 1);
 
-    // Sample points along the segment and compute local bead widths
     for (int i = 0; i <= steps; ++i) {
         Point p(start.x() + i * dx, start.y() + i * dy, 0);
 

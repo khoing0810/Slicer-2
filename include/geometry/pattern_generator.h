@@ -1,7 +1,5 @@
-#ifndef PATTERNGENERATOR_H
-#define PATTERNGENERATOR_H
+#pragma once
 
-// Local
 #include "geometry/polygon_list.h"
 
 namespace ORNL {
@@ -108,5 +106,3 @@ class PatternGenerator {
                                                  Angle sector_rotation, Angle infill_rotation);
 };
 } // namespace ORNL
-
-#endif // PATTERNGENERATOR

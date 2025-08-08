@@ -1,16 +1,14 @@
-#ifndef POLYGON_H
-#define POLYGON_H
+#pragma once
 
 #include "clipper.hpp"
+#include "geometry/path.h"
+#include "geometry/point.h"
 #include "geometry/polyline.h"
 
 #ifdef HAVE_SINGLE_PATH
     #include "single_path/geometry/point.h"
     #include "single_path/geometry/polygon.h"
 #endif
-
-#include "geometry/path.h"
-#include "geometry/point.h"
 
 namespace ORNL {
 class PolygonList;
@@ -201,4 +199,3 @@ class Polygon : public QVector<Point> {
 
 }; // Class Polygon
 } // namespace ORNL
-#endif // POLYGON_H

@@ -1,5 +1,5 @@
 #if 0
-#include "gcode/parsers/dmg_dmu_parser.h"
+    #include "gcode/parsers/dmg_dmu_parser.h"
 
 namespace ORNL
 {
@@ -27,16 +27,6 @@ namespace ORNL
     {
         if(params.size() != 1)
         {
-            //throwing errors deemed too restrictive, for now, if improperly formatted, skip command
-//            QString exceptionString;
-//            QTextStream(&exceptionString)
-//                << "M5 command should have no parameters . Error occured on "
-//                   "GCode line "
-//                << m_current_gcode_command.getLineNumber() << Qt::endl
-//                << "."
-//                << "With GCode command string: " << getCurrentCommandString();
-//            throw IllegalParameterException(exceptionString);
-
             return;
         }
         m_extruder_ON = true;
@@ -46,16 +36,6 @@ namespace ORNL
     {
         if (!params.empty())
         {
-            //throwing errors deemed too restrictive, for now, if improperly formatted, skip command
-//            QString exceptionString;
-//            QTextStream(&exceptionString)
-//                << "M5 command should have no parameters . Error occured on "
-//                   "GCode line "
-//                << m_current_gcode_command.getLineNumber() << Qt::endl
-//                << "."
-//                << "With GCode command string: " << getCurrentCommandString();
-//            throw IllegalParameterException(exceptionString);
-
             return;
         }
 

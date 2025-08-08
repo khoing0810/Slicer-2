@@ -1,9 +1,8 @@
 
 #include "geometry/polygon_list.h"
 
+#include "QPolygon"
 #include "utilities/mathutils.h"
-
-#include <QPolygon>
 
 namespace ORNL {
 PolygonList::PolygonList() {}

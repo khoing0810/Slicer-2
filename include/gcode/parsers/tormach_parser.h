@@ -1,9 +1,8 @@
-#ifndef TORMACH_PARSER_H
-#define TORMACH_PARSER_H
+#pragma once
+
 #include "common_parser.h"
 
-namespace ORNL
-{
+namespace ORNL {
 /*!
  * \class TormachParser
  * \brief This class implements the GCode parsing configuration for the
@@ -12,8 +11,7 @@ namespace ORNL
  *          - M Commands:
  *              - M64, M65
  */
-class TormachParser : public CommonParser
-{
+class TormachParser : public CommonParser {
   public:
     //! \brief Standard constructor that specifies meta type and whether or not
     //! to alter layers for minimal layer time
@@ -25,7 +23,7 @@ class TormachParser : public CommonParser
     //! \param upperLines Uppercase lines of the original used for ease of parsing/comparison
     TormachParser(GcodeMeta meta, bool allowLayerAlter, QStringList& lines, QStringList& upperLines);
 
-           //! \brief Function to initialize syntax specific handlers
+    //! \brief Function to initialize syntax specific handlers
     virtual void config();
 
   protected:
@@ -34,12 +32,9 @@ class TormachParser : public CommonParser
     //! used for the command
     virtual void M64Handler(QVector<QString> params);
 
-           //! \brief Handler for 'M65' command for turning off extruder
-           //! \param params Accepted by function for formatting check, but are not
-           //! used for the command
+    //! \brief Handler for 'M65' command for turning off extruder
+    //! \param params Accepted by function for formatting check, but are not
+    //! used for the command
     virtual void M65Handler(QVector<QString> params);
-
 };
-}
-
-#endif // TORMACH_PARSER_H
+} // namespace ORNL

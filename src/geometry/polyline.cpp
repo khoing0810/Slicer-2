@@ -1,4 +1,3 @@
-// Main Module
 #include "geometry/polyline.h"
 
 #include "geometry/polygon.h"

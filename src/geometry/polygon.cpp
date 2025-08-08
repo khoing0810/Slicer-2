@@ -1,7 +1,5 @@
-// Main Module
 #include "geometry/polygon.h"
 
-// Local
 #include "geometry/point.h"
 #include "geometry/polygon_list.h"
 #include "geometry/polyline.h"

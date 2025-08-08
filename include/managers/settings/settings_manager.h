@@ -7,9 +7,8 @@
 #include "QVector"
 #include "configs/settings_base.h"
 #include "configs/settings_range.h"
+#include "nlohmann/json.hpp"
 #include "part/part.h"
-
-#include <nlohmann/json.hpp>
 
 namespace ORNL {
 class SettingsBase;

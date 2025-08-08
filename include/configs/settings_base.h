@@ -1,5 +1,4 @@
-#ifndef SETTINGSBASE_H
-#define SETTINGSBASE_H
+#pragma once
 
 #include "QSharedPointer"
 #include "QString"
@@ -87,4 +86,3 @@ class SettingsBase {
     fifojson m_json = fifojson::array({});
 };
 } // namespace ORNL
-#endif // SETTINGSBASE_H

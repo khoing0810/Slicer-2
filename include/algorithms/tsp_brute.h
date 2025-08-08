@@ -1,13 +1,7 @@
-#ifndef TSPBRUTE_H
-#define TSPBRUTE_H
+#pragma once
 
-// Header
+#include "QVector"
 #include "algorithm_base.h"
-
-// Qt
-#include <QVector>
-
-// Local
 #include "step/layer/island/island_base.h"
 
 namespace ORNL {
@@ -98,5 +92,3 @@ class TspBrute : public AlgorithmBase {
     void removeValue(QVector<int>& index_list, int value);
 };
 } // namespace ORNL
-
-#endif // TSP_BRUTE_H

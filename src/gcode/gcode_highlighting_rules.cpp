@@ -1,7 +1,8 @@
 #if 0
-// Local
-#include <gcode/gcode_highlighting_rules.h>
-#include <utilities/constants.h>
+
+    #include "gcode/gcode_highlighting_rules.h"
+
+    #include "utilities/constants.h"
 
 namespace ORNL
 {

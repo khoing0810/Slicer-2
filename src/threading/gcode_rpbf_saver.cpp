@@ -1,14 +1,13 @@
 ﻿#include "threading/gcode_rpbf_saver.h"
 
+#include "QDir"
+#include "QFile"
+#include "QRegularExpression"
+#include "QStringBuilder"
+#include "QStringList"
+#include "QTextStream"
 #include "geometry/point.h"
 #include "managers/settings/settings_manager.h"
-
-#include <QDir>
-#include <QFile>
-#include <QRegularExpression>
-#include <QStringBuilder>
-#include <QStringList>
-#include <QTextStream>
 
 namespace ORNL {
 GCodeRPBFSaver::GCodeRPBFSaver(QString tempLocation, QString path, QString filename, QString text, GcodeMeta meta,
@@ -25,9 +24,8 @@ void GCodeRPBFSaver::run() {
     QStringList lines_copy = lines;
     QRegularExpression comments(R"(//.*)");
 
-    QStringMatcher x_origin_matcher(Constants::PrinterSettings::Dimensions::kXOffset),
-        y_origin_matcher(Constants::PrinterSettings::Dimensions::kXOffset),
-        sector_count_matcher(Constants::ProfileSettings::Infill::kSectorCount);
+    QStringMatcher x_origin_matcher(PRS::Dimensions::kXOffset), y_origin_matcher(PRS::Dimensions::kXOffset),
+        sector_count_matcher(PS::Infill::kSectorCount);
 
     Distance x_origin, y_origin;
     int sector_count;
@@ -74,7 +72,7 @@ void GCodeRPBFSaver::run() {
     QStringMatcher sectorHeaderMatcher(sectorHeader), layerHeaderMatcher(m_selected_meta.m_layer_delimiter);
     QRegularExpression spaces("^\\s+");
     int layer_count = 0;
-    int total_sectors = GSM->getGlobal()->setting<int>(Constants::ProfileSettings::Infill::kSectorCount);
+    int total_sectors = GSM->getGlobal()->setting<int>(PS::Infill::kSectorCount);
     double limit = 2.0 * M_PI;
 
     for (int i = 0, end = lines.size(); i < end; ++i) {

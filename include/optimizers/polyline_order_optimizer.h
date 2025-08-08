@@ -1,5 +1,4 @@
-#ifndef POLYLINEORDEROPTIMIZER_H
-#define POLYLINEORDEROPTIMIZER_H
+#pragma once
 
 #include "configs/settings_base.h"
 #include "geometry/point.h"
@@ -202,5 +201,3 @@ class PolylineOrderOptimizer {
     bool m_has_computed_heirarchy;
 };
 } // namespace ORNL
-
-#endif // POLYLINEORDEROPTIMIZER_H

@@ -1,24 +1,15 @@
 #include "geometry/mesh/open_mesh.h"
 
-// Qt
-#include <QFileInfo>
-
-// CGAL
-#include <CGAL/AABB_tree.h>
-#include <CGAL/Advancing_front_surface_reconstruction.h>
-#include <CGAL/IO/read_points.h>
-#include <CGAL/Polygon_mesh_processing/clip.h>
-#include <CGAL/Polygon_mesh_processing/corefinement.h>
-#include <CGAL/Polygon_mesh_processing/intersection.h>
-#include <CGAL/Polygon_mesh_processing/measure.h>
-#include <CGAL/Polygon_mesh_processing/repair.h>
-#include <CGAL/Polygon_mesh_processing/self_intersections.h>
-#include <CGAL/Polygon_mesh_processing/transform.h>
-#include <CGAL/Polygon_mesh_slicer.h>
-#include <CGAL/boost/graph/Face_filtered_graph.h>
-#include <CGAL/disable_warnings.h>
-#include <CGAL/optimal_bounding_box.h>
-#include <CGAL/poisson_surface_reconstruction.h>
+#include "CGAL/Advancing_front_surface_reconstruction.h"
+#include "CGAL/IO/read_points.h"
+#include "CGAL/Optimal_bounding_box/oriented_bounding_box.h"
+#include "CGAL/Polygon_mesh_processing/compute_normal.h"
+#include "CGAL/Polygon_mesh_processing/measure.h"
+#include "CGAL/Polygon_mesh_processing/transform.h"
+#include "CGAL/Polygon_mesh_slicer.h"
+#include "CGAL/boost/graph/Face_filtered_graph.h"
+#include "CGAL/disable_warnings.h"
+#include "QFileInfo"
 
 namespace ORNL {
 OpenMesh::OpenMesh() : MeshBase() {}

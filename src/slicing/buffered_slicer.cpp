@@ -26,7 +26,7 @@ BufferedSlicer::BufferedSlicer(const QSharedPointer<MeshBase>& mesh, const QShar
     std::tie(m_slicing_plane, m_mesh_min, m_mesh_max) =
         SlicingUtilities::GetDefaultSlicingAxis(m_settings, m_mesh, m_skeleton);
 
-    if (m_settings->setting<bool>(Constants::ExperimentalSettings::WireFeed::kSettingsRegionMeshSplit)) {
+    if (m_settings->setting<bool>(ES::WireFeed::kSettingsRegionMeshSplit)) {
         QSharedPointer<ClosedMesh> single_setting_mesh = QSharedPointer<ClosedMesh>::create();
 
         if (settings_parts.size() > 0) {
@@ -118,8 +118,7 @@ QSharedPointer<BufferedSlicer::SliceMeta> BufferedSlicer::processSingleSlice() {
 
         // Shift along slicing axis or skeleton
         SlicingUtilities::ShiftSlicingPlane(layer_specific_settings, m_slicing_plane, m_last_layer_height, m_skeleton);
-        m_last_layer_height =
-            layer_specific_settings->setting<Distance>(Constants::ProfileSettings::Layer::kLayerHeight);
+        m_last_layer_height = layer_specific_settings->setting<Distance>(PS::Layer::kLayerHeight);
 
         // If the slicing plane is beyond the max_point of the part, stop
         if (m_slicing_plane.evaluatePoint(m_mesh_max) < 0)
@@ -147,10 +146,8 @@ QSharedPointer<BufferedSlicer::SliceMeta> BufferedSlicer::processSingleSlice() {
                                                     layer_specific_settings);
         }
 
-        if (layer_specific_settings->setting<bool>(Constants::ProfileSettings::SpecialModes::kEnableOversize) &&
-            geometry.size() > 0) {
-            geometry = geometry.offset(
-                layer_specific_settings->setting<double>(Constants::ProfileSettings::SpecialModes::kOversizeDistance));
+        if (layer_specific_settings->setting<bool>(PS::SpecialModes::kEnableOversize) && geometry.size() > 0) {
+            geometry = geometry.offset(layer_specific_settings->setting<double>(PS::SpecialModes::kOversizeDistance));
         }
 
         // Settings regions

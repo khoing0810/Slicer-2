@@ -65,8 +65,7 @@ void RegionBase::calculateMultiMaterialTransition(Distance& transition_distance,
             if (!current_segments[j]->isPrintingSegment()) {
                 // Update material number so it matches other segments, excluding travels
                 if (dynamic_cast<TravelSegment*>(current_segments[j].data()) == nullptr)
-                    current_segments[j]->getSb()->setSetting(Constants::SegmentSettings::kMaterialNumber,
-                                                             next_material_number);
+                    current_segments[j]->getSb()->setSetting(SS::kMaterialNumber, next_material_number);
             }
             else {
                 // If segment length is long enough to exceed transition distance, the segment must be broken to achieve
@@ -83,32 +82,25 @@ void RegionBase::calculateMultiMaterialTransition(Distance& transition_distance,
                     current_segments[j]->setEnd(end);
 
                     QSharedPointer<LineSegment> segment = QSharedPointer<LineSegment>::create(end, old_end);
-                    segment->getSb()->setSetting(
-                        Constants::SegmentSettings::kWidth,
-                        current_segments[j]->getSb()->setting<Distance>(Constants::SegmentSettings::kWidth));
-                    segment->getSb()->setSetting(
-                        Constants::SegmentSettings::kHeight,
-                        current_segments[j]->getSb()->setting<Distance>(Constants::SegmentSettings::kHeight));
-                    segment->getSb()->setSetting(
-                        Constants::SegmentSettings::kSpeed,
-                        current_segments[j]->getSb()->setting<Distance>(Constants::SegmentSettings::kSpeed));
-                    segment->getSb()->setSetting(
-                        Constants::SegmentSettings::kAccel,
-                        current_segments[j]->getSb()->setting<Distance>(Constants::SegmentSettings::kAccel));
-                    segment->getSb()->setSetting(
-                        Constants::SegmentSettings::kExtruderSpeed,
-                        current_segments[j]->getSb()->setting<Distance>(Constants::SegmentSettings::kExtruderSpeed));
-                    segment->getSb()->setSetting(Constants::SegmentSettings::kMaterialNumber, next_material_number);
-                    segment->getSb()->setSetting(
-                        Constants::SegmentSettings::kRegionType,
-                        current_segments[j]->getSb()->setting<Distance>(Constants::SegmentSettings::kRegionType));
+                    segment->getSb()->setSetting(SS::kWidth,
+                                                 current_segments[j]->getSb()->setting<Distance>(SS::kWidth));
+                    segment->getSb()->setSetting(SS::kHeight,
+                                                 current_segments[j]->getSb()->setting<Distance>(SS::kHeight));
+                    segment->getSb()->setSetting(SS::kSpeed,
+                                                 current_segments[j]->getSb()->setting<Distance>(SS::kSpeed));
+                    segment->getSb()->setSetting(SS::kAccel,
+                                                 current_segments[j]->getSb()->setting<Distance>(SS::kAccel));
+                    segment->getSb()->setSetting(SS::kExtruderSpeed,
+                                                 current_segments[j]->getSb()->setting<Distance>(SS::kExtruderSpeed));
+                    segment->getSb()->setSetting(SS::kMaterialNumber, next_material_number);
+                    segment->getSb()->setSetting(SS::kRegionType,
+                                                 current_segments[j]->getSb()->setting<Distance>(SS::kRegionType));
 
                     m_paths[i].insert(j + 1, segment);
                 }
                 // Segment is shorter than transition distance, update its material number and continue
                 else {
-                    current_segments[j]->getSb()->setSetting(Constants::SegmentSettings::kMaterialNumber,
-                                                             next_material_number);
+                    current_segments[j]->getSb()->setSetting(SS::kMaterialNumber, next_material_number);
                 }
                 transition_distance -= next_segment_distance;
             }

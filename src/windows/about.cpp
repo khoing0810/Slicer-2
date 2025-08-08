@@ -1,21 +1,14 @@
 #include "windows/about.h"
 
-#include "units/unit.h"
-#include "utilities/qt_json_conversion.h"
-
-#include <QApplication>
-#include <QDesktopServices>
-#include <QFile>
-#include <QGridLayout>
-#include <QIcon>
-#include <QLabel>
-#include <QUrl>
-
-#include <qdatetime.h>
-
-// Boost
-#include <boost/preprocessor.hpp>
-
+#include "QApplication"
+#include "QDesktopServices"
+#include "QFile"
+#include "QGridLayout"
+#include "QIcon"
+#include "QLabel"
+#include "QUrl"
+#include "boost/preprocessor.hpp"
+#include "qdatetime.h"
 
 namespace ORNL {
 AboutWindow::AboutWindow(QWidget* parent) : QWidget() {

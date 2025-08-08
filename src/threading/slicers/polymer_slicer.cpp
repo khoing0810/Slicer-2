@@ -92,7 +92,7 @@ void PolymerSlicer::preProcess(nlohmann::json opt_data) {
             }
 
             // If wire feeding is turned on, have to create special island combinations
-            if (next_layer_meta->settings->setting<bool>(Constants::ExperimentalSettings::WireFeed::kWireFeedEnable)) {
+            if (next_layer_meta->settings->setting<bool>(ES::WireFeed::kWireFeedEnable)) {
                 for (const PolygonList& island_geometry : split_geometry) {
                     // Polymer builds use polymer islands.
                     QSharedPointer<WireFeedIsland> poly_isl = QSharedPointer<WireFeedIsland>::create(
@@ -119,13 +119,11 @@ void PolymerSlicer::preProcess(nlohmann::json opt_data) {
             QSharedPointer<Layer> layerWithSameZ;
             QSharedPointer<Layer> layer2;
 
-            bool perimeter_enabled =
-                next_layer_meta->settings->setting<bool>(Constants::ProfileSettings::Perimeter::kEnable);
-            bool shifted_beads_enabled =
-                next_layer_meta->settings->setting<bool>(Constants::ProfileSettings::Perimeter::kEnableShiftedBeads);
-            bool infill_enabled = next_layer_meta->settings->setting<bool>(Constants::ProfileSettings::Infill::kEnable);
+            bool perimeter_enabled = next_layer_meta->settings->setting<bool>(PS::Perimeter::kEnable);
+            bool shifted_beads_enabled = next_layer_meta->settings->setting<bool>(PS::Perimeter::kEnableShiftedBeads);
+            bool infill_enabled = next_layer_meta->settings->setting<bool>(PS::Infill::kEnable);
             bool alternating_lines_enabled =
-                next_layer_meta->settings->setting<bool>(Constants::ProfileSettings::Infill::kEnableAlternatingLines);
+                next_layer_meta->settings->setting<bool>(PS::Infill::kEnableAlternatingLines);
 
             if ((perimeter_enabled && shifted_beads_enabled) || (infill_enabled && alternating_lines_enabled)) {
                 // get height of the half sized layer on first layer creation
@@ -190,8 +188,7 @@ void PolymerSlicer::preProcess(nlohmann::json opt_data) {
                 }
 
                 // If wire feeding is turned on, have to create special island combinations
-                if (next_layer_meta->settings->setting<bool>(
-                        Constants::ExperimentalSettings::WireFeed::kWireFeedEnable)) {
+                if (next_layer_meta->settings->setting<bool>(ES::WireFeed::kWireFeedEnable)) {
                     QVector<QSharedPointer<IslandBase>> newIslands;
 
                     for (const PolygonList& island_geometry : split_geometry) {
@@ -225,22 +222,22 @@ void PolymerSlicer::preProcess(nlohmann::json opt_data) {
         meta.part->clearStepsFromIndex(meta.last_step_count + meta.part_start);
 
         //! If perimeters are enabled, give each perimeter the total number of layers
-        if (meta.part_sb->setting<bool>(Constants::ProfileSettings::Perimeter::kEnable)) {
+        if (meta.part_sb->setting<bool>(PS::Perimeter::kEnable)) {
             processPerimeter(meta.part, meta.part_start, meta.last_step_count);
         }
 
         //! If infill alternating lines are enabled, give the infill the total number of layers
-        if (meta.part_sb->setting<bool>(Constants::ProfileSettings::Infill::kEnableAlternatingLines)) {
+        if (meta.part_sb->setting<bool>(PS::Infill::kEnableAlternatingLines)) {
             processInfill(meta.part, meta.part_start, meta.last_step_count);
         }
 
         //! If skins are enabled, give each skin its upper and lower geometry
-        if (meta.part_sb->setting<bool>(Constants::ProfileSettings::Skin::kEnable)) {
+        if (meta.part_sb->setting<bool>(PS::Skin::kEnable)) {
             processSkin(meta.part, meta.part_start, meta.last_step_count);
         }
 
         //! If supports are enabled, find overhangs and add support_islands to layer below overhangs
-        if (meta.part_sb->setting<bool>(Constants::ProfileSettings::Support::kEnable) && meta.last_step_count > 0) {
+        if (meta.part_sb->setting<bool>(PS::Support::kEnable) && meta.last_step_count > 0) {
             processSupport(meta.part, meta.last_step_count, meta.part_start);
         }
 
@@ -302,12 +299,12 @@ void PolymerSlicer::processSkin(QSharedPointer<Part> part, int part_start, int l
 
             if (layer->isDirty()) {
                 int gradual_steps = 0;
-                if (layer->getSb()->setting<bool>(Constants::ProfileSettings::Skin::kInfillEnable))
-                    gradual_steps = layer->getSb()->setting<int>(Constants::ProfileSettings::Skin::kInfillSteps);
+                if (layer->getSb()->setting<bool>(PS::Skin::kInfillEnable))
+                    gradual_steps = layer->getSb()->setting<int>(PS::Skin::kInfillSteps);
 
                 //! Gather skin counts
-                int bottom_count = layer->getSb()->setting<int>(Constants::ProfileSettings::Skin::kBottomCount);
-                int top_count = layer->getSb()->setting<int>(Constants::ProfileSettings::Skin::kTopCount);
+                int bottom_count = layer->getSb()->setting<int>(PS::Skin::kBottomCount);
+                int top_count = layer->getSb()->setting<int>(PS::Skin::kTopCount);
 
                 //! Set bounds
                 int upper_bound = qMin(layer_nr + top_count, last_layer_count + part_start - 1);
@@ -359,8 +356,8 @@ void PolymerSlicer::processInfill(QSharedPointer<Part> part, int part_start, int
 
 void PolymerSlicer::processRaft(QSharedPointer<Part> part, int part_start, QSharedPointer<SettingsBase> part_sb) {
     if (!part->steps(StepType::kLayer).empty()) {
-        if (part_sb->setting<bool>(Constants::MaterialSettings::PlatformAdhesion::kRaftEnable)) {
-            int raft_layers = part_sb->setting<int>(Constants::MaterialSettings::PlatformAdhesion::kRaftLayers);
+        if (part_sb->setting<bool>(MS::PlatformAdhesion::kRaftEnable)) {
+            int raft_layers = part_sb->setting<int>(MS::PlatformAdhesion::kRaftLayers);
             Distance height_offset = 0.0;
 
             auto steps = part->steps(StepType::kLayer);
@@ -373,8 +370,7 @@ void PolymerSlicer::processRaft(QSharedPointer<Part> part, int part_start, QShar
                 raft_layer->setRaftShift(first_layer->getSlicingPlane().normal() * height_offset());
                 new_raft_layers.push_back(raft_layer);
 
-                height_offset +=
-                    raft_layer->getSb()->setting<Distance>(Constants::ProfileSettings::Layer::kLayerHeight);
+                height_offset += raft_layer->getSb()->setting<Distance>(PS::Layer::kLayerHeight);
             }
 
             // Offset steps based on height added by raft layers
@@ -396,32 +392,32 @@ void PolymerSlicer::processRaft(QSharedPointer<Part> part, int part_start, QShar
 }
 
 void PolymerSlicer::processBrim(QSharedPointer<Part> part, QSharedPointer<SettingsBase> part_sb) {
-    if (part_sb->setting<bool>(Constants::MaterialSettings::PlatformAdhesion::kBrimEnable)) {
+    if (part_sb->setting<bool>(MS::PlatformAdhesion::kBrimEnable)) {
         QList<QSharedPointer<Step>> steps = part->steps(StepType::kLayer);
         for (int i = 0, end = steps.size(); i < end; ++i) {
-            if (i < part_sb->setting<int>(Constants::MaterialSettings::PlatformAdhesion::kBrimLayers))
+            if (i < part_sb->setting<int>(MS::PlatformAdhesion::kBrimLayers))
                 LayerAdditions::addBrim(steps[i].dynamicCast<Layer>());
         }
     }
 }
 
 void PolymerSlicer::processSkirt(QSharedPointer<Part> part, QSharedPointer<SettingsBase> part_sb) {
-    if (part_sb->setting<bool>(Constants::MaterialSettings::PlatformAdhesion::kSkirtEnable)) {
+    if (part_sb->setting<bool>(MS::PlatformAdhesion::kSkirtEnable)) {
         QList<QSharedPointer<Step>> steps = part->steps(StepType::kLayer);
         for (int i = 0, end = steps.size(); i < end; ++i) {
-            if (i < part_sb->setting<int>(Constants::MaterialSettings::PlatformAdhesion::kSkirtLayers))
+            if (i < part_sb->setting<int>(MS::PlatformAdhesion::kSkirtLayers))
                 LayerAdditions::addSkirt(steps[i].dynamicCast<Layer>());
         }
     }
 }
 
 void PolymerSlicer::processThermalScan(QSharedPointer<Part> part, QSharedPointer<SettingsBase> part_sb) {
-    if (part_sb->setting<bool>(Constants::ProfileSettings::ThermalScanner::kThermalScanner)) {
+    if (part_sb->setting<bool>(PS::ThermalScanner::kThermalScanner)) {
         int first_layer = 0;
 
         // If bed scan is enabled for laser scan, the first layer for the thermal scan is layer 1
-        if (part_sb->setting<bool>(Constants::ProfileSettings::LaserScanner::kLaserScanner) &&
-            part_sb->setting<bool>(Constants::ProfileSettings::LaserScanner::kEnableBedScan))
+        if (part_sb->setting<bool>(PS::LaserScanner::kLaserScanner) &&
+            part_sb->setting<bool>(PS::LaserScanner::kEnableBedScan))
             first_layer = 1;
 
         int total_layers = part->countStepPairs();
@@ -433,26 +429,22 @@ void PolymerSlicer::processThermalScan(QSharedPointer<Part> part, QSharedPointer
 
 void PolymerSlicer::processLaserScan(QSharedPointer<Part> part, QSharedPointer<SettingsBase> part_sb) {
     if (!m_saved_layer_settings.isEmpty() &&
-        m_saved_layer_settings.first()->setting<bool>(Constants::ProfileSettings::LaserScanner::kLaserScanner) &&
-        !part->steps().isEmpty()) {
-        if (m_saved_layer_settings.first()->setting<bool>(Constants::ProfileSettings::LaserScanner::kLaserScanner)) {
+        m_saved_layer_settings.first()->setting<bool>(PS::LaserScanner::kLaserScanner) && !part->steps().isEmpty()) {
+        if (m_saved_layer_settings.first()->setting<bool>(PS::LaserScanner::kLaserScanner)) {
             double scan_height_total = 0;
-            if (m_saved_layer_settings.first()->setting<bool>(
-                    Constants::ProfileSettings::LaserScanner::kEnableBedScan)) {
+            if (m_saved_layer_settings.first()->setting<bool>(PS::LaserScanner::kEnableBedScan)) {
                 LayerAdditions::addLaserScan(part, 0, 0, part->step(0, StepType::kLayer), m_temp_gcode_dir);
             }
             else {
                 part->removeStepFromGroup(0, StepType::kScan);
             }
 
-            int scan_layer_skip =
-                m_saved_layer_settings.first()->setting<int>(Constants::ProfileSettings::LaserScanner::kScanLayerSkip);
+            int scan_layer_skip = m_saved_layer_settings.first()->setting<int>(PS::LaserScanner::kScanLayerSkip);
             for (int current_layer = 1, layer_count = part->countStepPairs(); current_layer < layer_count;
                  ++current_layer) {
                 QSharedPointer<Layer> previousLayer =
                     part->step(current_layer - 1, StepType::kLayer).dynamicCast<Layer>();
-                scan_height_total +=
-                    previousLayer->getSb()->setting<double>(Constants::ProfileSettings::Layer::kLayerHeight);
+                scan_height_total += previousLayer->getSb()->setting<double>(PS::Layer::kLayerHeight);
 
                 if ((current_layer - 1) % scan_layer_skip != 0)
                     part->removeStepFromGroup(current_layer, StepType::kScan);
@@ -470,7 +462,7 @@ void PolymerSlicer::processLaserScan(QSharedPointer<Part> part, QSharedPointer<S
 }
 
 void PolymerSlicer::processAnchors(QSharedPointer<Part> part, QSharedPointer<SettingsBase> part_sb) {
-    if (part_sb->setting<bool>(Constants::ExperimentalSettings::WireFeed::kAnchorEnable)) {
+    if (part_sb->setting<bool>(ES::WireFeed::kAnchorEnable)) {
         int total_layers = part->countStepPairs();
         for (int current_layer = 0; current_layer < total_layers; ++current_layer)
             LayerAdditions::addAnchors(part->step(current_layer, StepType::kLayer).dynamicCast<Layer>());
@@ -486,7 +478,7 @@ void PolymerSlicer::processGlobalLayers(QVector<QSharedPointer<Part>> parts,
 }
 
 void PolymerSlicer::assignNozzles(const QSharedPointer<SettingsBase>& settings_base) {
-    int tool_count = settings_base->setting<int>(Constants::ExperimentalSettings::MultiNozzle::kNozzleCount);
+    int tool_count = settings_base->setting<int>(ES::MultiNozzle::kNozzleCount);
     if (tool_count == 1) {
         // default, set every island to extruder 0
         for (auto g_layer : m_global_layers) {
@@ -496,9 +488,9 @@ void PolymerSlicer::assignNozzles(const QSharedPointer<SettingsBase>& settings_b
         }
     }
     // more than one nozzle & nozzles are independent
-    else if (settings_base->setting<bool>(Constants::ExperimentalSettings::MultiNozzle::kEnableIndependentNozzles)) {
-        NozzleAssignmentMethod assignment_method = settings_base->setting<NozzleAssignmentMethod>(
-            Constants::ExperimentalSettings::MultiNozzle::kNozzleAssignmentMethod);
+    else if (settings_base->setting<bool>(ES::MultiNozzle::kEnableIndependentNozzles)) {
+        NozzleAssignmentMethod assignment_method =
+            settings_base->setting<NozzleAssignmentMethod>(ES::MultiNozzle::kNozzleAssignmentMethod);
 
         // iterate through global layers and assign nozzles
         for (auto global_layer : m_global_layers) {
@@ -522,11 +514,9 @@ void PolymerSlicer::processLayerLinks(QVector<QSharedPointer<Part>> parts) {
     for (auto& part : parts) {
         auto part_sb = QSharedPointer<SettingsBase>::create(*GSM->getGlobal()); // Copy global
         part_sb->populate(part->getSb());                                       // Fill with part overrides
-        bool enable_single_path =
-            part_sb->setting<bool>(Constants::ExperimentalSettings::SinglePath::kEnableSinglePath);
-        bool enable_exclusion =
-            part_sb->setting<bool>(Constants::ExperimentalSettings::SinglePath::kEnableBridgeExclusion);
-        bool enable_zippering = part_sb->setting<bool>(Constants::ExperimentalSettings::SinglePath::kEnableZippering);
+        bool enable_single_path = part_sb->setting<bool>(ES::SinglePath::kEnableSinglePath);
+        bool enable_exclusion = part_sb->setting<bool>(ES::SinglePath::kEnableBridgeExclusion);
+        bool enable_zippering = part_sb->setting<bool>(ES::SinglePath::kEnableZippering);
 
         // Link layer threads for zippering/ exclusion
         if (enable_single_path) {
@@ -585,18 +575,18 @@ void PolymerSlicer::processSupport(QSharedPointer<Part> part, int layer_count, i
         auto part_sb = QSharedPointer<SettingsBase>::create(*GSM->getGlobal()); // Copy global
         part_sb->populate(part->getSb());                                       // Fill with part overrides
         //! Determine the offset distance that should be used for support creation
-        Distance support_xy_distance = part_sb->setting<Distance>(Constants::ProfileSettings::Support::kXYDistance);
-        Angle support_threshold_angle = part_sb->setting<Angle>(Constants::ProfileSettings::Support::kThresholdAngle);
-        Distance layer_height = part_sb->setting<Distance>(Constants::ProfileSettings::Layer::kLayerHeight);
+        Distance support_xy_distance = part_sb->setting<Distance>(PS::Support::kXYDistance);
+        Angle support_threshold_angle = part_sb->setting<Angle>(PS::Support::kThresholdAngle);
+        Distance layer_height = part_sb->setting<Distance>(PS::Layer::kLayerHeight);
         Distance horizontal_offset = max(support_xy_distance, Distance(layer_height * tan(support_threshold_angle)));
-        int layer_offset = part_sb->setting<int>(Constants::ProfileSettings::Support::kLayerOffset);
+        int layer_offset = part_sb->setting<int>(PS::Support::kLayerOffset);
 
         //! If tapering is enabled, set taper distance
         Distance taper = 0;
-        if (part_sb->setting<bool>(Constants::ProfileSettings::Support::kTaper))
-            taper = part_sb->setting<Distance>(Constants::ProfileSettings::Layer::kBeadWidth) / 2;
+        if (part_sb->setting<bool>(PS::Support::kTaper))
+            taper = part_sb->setting<Distance>(PS::Layer::kBeadWidth) / 2;
 
-        Area minimum_support_area = part_sb->setting<Area>(Constants::ProfileSettings::Support::kMinArea);
+        Area minimum_support_area = part_sb->setting<Area>(PS::Support::kMinArea);
 
         // Compare each layer to the one below it looking for overhangs
         QVector<PolygonList> layers_overhangs; // for all but top layer, count = layer_count - 1
@@ -736,7 +726,7 @@ void PolymerSlicer::postProcess(nlohmann::json opt_data) {
         QVector<int> start_indices;
         QVector<QVector<QSharedPointer<RegionBase>>> previous_regions_list;
 
-        int num_nozzles = global_sb->setting<int>(Constants::ExperimentalSettings::MultiNozzle::kNozzleCount);
+        int num_nozzles = global_sb->setting<int>(ES::MultiNozzle::kNozzleCount);
         for (int i = 0; i < num_nozzles; ++i) {
             current_points.push_back(Point(0, 0, 0));
             start_indices.push_back(-1);
@@ -747,8 +737,8 @@ void PolymerSlicer::postProcess(nlohmann::json opt_data) {
             m_global_layers[g_layer_num]->unorient();
 
             // if there are multiple nozzles that are NOT independent
-            if (global_sb->setting<int>(Constants::ExperimentalSettings::MultiNozzle::kNozzleCount) > 1 &&
-                !global_sb->setting<bool>(Constants::ExperimentalSettings::MultiNozzle::kEnableIndependentNozzles)) {
+            if (global_sb->setting<int>(ES::MultiNozzle::kNozzleCount) > 1 &&
+                !global_sb->setting<bool>(ES::MultiNozzle::kEnableIndependentNozzles)) {
                 m_global_layers[g_layer_num]->adjustFixedMultiNozzle();
             }
 

@@ -1,5 +1,5 @@
 #if 0
-#include "gcode/parsers/gudel_parser.h"
+    #include "gcode/parsers/gudel_parser.h"
 
 namespace ORNL
 {
@@ -27,7 +27,6 @@ namespace ORNL
     {
         if(params.size() != 1)
         {
-            //throwing errors deemed too restrictive, for now, if improperly formatted, skip command
             return;
         }
 
@@ -38,7 +37,6 @@ namespace ORNL
     {
         if (!params.empty())
         {
-            //throwing errors deemed too restrictive, for now, if improperly formatted, skip command
             return;
         }
 

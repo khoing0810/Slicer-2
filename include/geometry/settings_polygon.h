@@ -1,5 +1,4 @@
-#ifndef SETTINGS_POLYGON_H
-#define SETTINGS_POLYGON_H
+#pragma once
 
 #include "configs/settings_base.h"
 #include "geometry/polygon_list.h"
@@ -40,5 +39,3 @@ class SettingsPolygon : public PolygonList {
     QSharedPointer<SettingsBase> m_sb;
 };
 } // namespace ORNL
-
-#endif // SETTINGS_POLYGON_H

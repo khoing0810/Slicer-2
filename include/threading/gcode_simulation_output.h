@@ -1,31 +1,24 @@
-#ifndef GCODE_SIMULATION_OUTPUT_H
-#define GCODE_SIMULATION_OUTPUT_H
+#pragma once
 
-// Local
+#include "QThread"
 #include "gcode/gcode_meta.h"
-
-// Qt
-#include <QThread>
 
 namespace ORNL {
 /*!
-     * \class GCodeSimulationOutput
-     * \brief Threaded class that provides additional gcode processing for user with ABAQUS.
-     */
+ * \class GCodeSimulationOutput
+ * \brief Threaded class that provides additional gcode processing for user with ABAQUS.
+ */
 class GCodeSimulationOutput : public QThread {
     Q_OBJECT
-public:
+  public:
     //! \brief Constructor
     //! \param temp_location location of gcode file
     //! \param path path to output
     //! \param filename filename to output
     //! \param text current gcode
     //! \param meta meta used to generate gcode
-    GCodeSimulationOutput(const QString& temp_location,
-                          const QString& path,
-                          const QString& filename,
-                          const QString& text,
-                          const GcodeMeta& meta);
+    GCodeSimulationOutput(const QString& temp_location, const QString& path, const QString& filename,
+                          const QString& text, const GcodeMeta& meta);
 
     //! \brief Function that is run when start is called on this thread.
     void run() override;
@@ -36,13 +29,9 @@ public:
     //! \param z the new Z position
     //! \param w the new W position
     //! \param f the new velocity command
-    void calculateTime(const QString& x,
-                       const QString& y,
-                       const QString& z,
-                       const QString& w,
-                       const QString& f);
+    void calculateTime(const QString& x, const QString& y, const QString& z, const QString& w, const QString& f);
 
-private:
+  private:
     //! \brief Temporary file location, output path, output filename, and text to output
     QString m_temp_location, m_path, m_filename, m_text;
 
@@ -61,6 +50,5 @@ private:
     //! \brief Meta info determined from file
     GcodeMeta m_selected_meta;
 
-};  // class GCodeSimulationOutput
-}  // namespace ORNL
-#endif // GCODE_SIMULATION_OUTPUT_H
+}; // class GCodeSimulationOutput
+} // namespace ORNL

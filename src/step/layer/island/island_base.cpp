@@ -1,7 +1,5 @@
-// Main Module
 #include "step/layer/island/island_base.h"
 
-// Local
 #include "step/layer/regions/anchor.h"
 #include "step/layer/regions/brim.h"
 #include "step/layer/regions/infill.h"
@@ -29,7 +27,7 @@ void IslandBase::markRegionStartSegment() {
             auto firstSegment = firstRegion->getPaths().first();
             if (firstSegment.size() > 0) {
                 auto sb = firstSegment.begin()->data()->getSb();
-                sb->setSetting(Constants::SegmentSettings::kIsRegionStartSegment, true);
+                sb->setSetting(SS::kIsRegionStartSegment, true);
             }
         }
     }
@@ -181,7 +179,7 @@ void IslandBase::compute(uint layer_num, QSharedPointer<SyncManager>& sync) {
     }
 
 #ifdef HAVE_SINGLE_PATH
-    if (m_sb->setting<bool>(Constants::ExperimentalSettings::SinglePath::kEnableSinglePath)) {
+    if (m_sb->setting<bool>(ES::SinglePath::kEnableSinglePath)) {
         // Combine and pass to sp
         QVector<SinglePath::PolygonList> combined_geometry;
 
@@ -245,17 +243,14 @@ void IslandBase::compute(uint layer_num, QSharedPointer<SyncManager>& sync) {
 void IslandBase::applySinglePath(QVector<SinglePath::PolygonList>& single_path_geometry, uint layer_num,
                                  QSharedPointer<SyncManager>& sync) {
     // Get settings
-    bool enable_exclusion = m_sb->setting<bool>(Constants::ExperimentalSettings::SinglePath::kEnableBridgeExclusion);
-    bool enable_zippering = m_sb->setting<bool>(Constants::ExperimentalSettings::SinglePath::kEnableZippering);
-    Distance previous_layer_exclusion_distance =
-        m_sb->setting<Distance>(Constants::ExperimentalSettings::SinglePath::kPrevLayerExclusionDistance);
-    Distance corner_exclusion_distance =
-        m_sb->setting<Distance>(Constants::ExperimentalSettings::SinglePath::kCornerExclusionDistance);
-    Distance max_bridge_length = m_sb->setting<Distance>(Constants::ExperimentalSettings::SinglePath::kMaxBridgeLength);
-    Distance min_bridge_separation =
-        m_sb->setting<Distance>(Constants::ExperimentalSettings::SinglePath::kMinBridgeSeparation);
-    Distance inset_bead_width = m_sb->setting<Distance>(Constants::ProfileSettings::Inset::kBeadWidth);
-    Distance perimeter_bead_width = m_sb->setting<Distance>(Constants::ProfileSettings::Perimeter::kBeadWidth);
+    bool enable_exclusion = m_sb->setting<bool>(ES::SinglePath::kEnableBridgeExclusion);
+    bool enable_zippering = m_sb->setting<bool>(ES::SinglePath::kEnableZippering);
+    Distance previous_layer_exclusion_distance = m_sb->setting<Distance>(ES::SinglePath::kPrevLayerExclusionDistance);
+    Distance corner_exclusion_distance = m_sb->setting<Distance>(ES::SinglePath::kCornerExclusionDistance);
+    Distance max_bridge_length = m_sb->setting<Distance>(ES::SinglePath::kMaxBridgeLength);
+    Distance min_bridge_separation = m_sb->setting<Distance>(ES::SinglePath::kMinBridgeSeparation);
+    Distance inset_bead_width = m_sb->setting<Distance>(PS::Inset::kBeadWidth);
+    Distance perimeter_bead_width = m_sb->setting<Distance>(PS::Perimeter::kBeadWidth);
 
     SinglePath::Settings settings(enable_exclusion, enable_zippering, previous_layer_exclusion_distance(),
                                   corner_exclusion_distance(), max_bridge_length(), min_bridge_separation());
@@ -336,14 +331,11 @@ void IslandBase::calculateMultiMaterialTransitions(QVector<QSharedPointer<Region
         QSharedPointer<RegionBase> preceedingRegion = previousRegions[previousRegions.size() - 2];
         if (lastRegion->getMaterialNumber() != preceedingRegion->getMaterialNumber()) {
             Distance transition_distance;
-            if (m_sb->setting<int>(Constants::MaterialSettings::MultiMaterial::kEnableSecondDistance) &&
-                lastRegion->getMaterialNumber() == 2) {
-                transition_distance =
-                    m_sb->setting<Distance>(Constants::MaterialSettings::MultiMaterial::kSecondDistance);
+            if (m_sb->setting<int>(MS::MultiMaterial::kEnableSecondDistance) && lastRegion->getMaterialNumber() == 2) {
+                transition_distance = m_sb->setting<Distance>(MS::MultiMaterial::kSecondDistance);
             }
             else {
-                transition_distance =
-                    m_sb->setting<Distance>(Constants::MaterialSettings::MultiMaterial::kTransitionDistance);
+                transition_distance = m_sb->setting<Distance>(MS::MultiMaterial::kTransitionDistance);
             }
 
             int i = previousRegions.size() - 2;

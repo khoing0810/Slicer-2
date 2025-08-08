@@ -1,12 +1,9 @@
-//not currently supported, may include in the future
+#pragma once
+
+// not currently supported, may include in the future
 #if 0
-#ifndef WOLFPARSER_H
-#define WOLFPARSER_H
 
-//! \file wolfparser.h
-
-#include "common_parser.h"
-
+    #include "common_parser.h"
 
 namespace ORNL
 {
@@ -40,5 +37,5 @@ namespace ORNL
     private:
     };
 }  // namespace ORNL
-#endif  // WOLFPARSER_H
+
 #endif

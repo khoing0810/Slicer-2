@@ -1,5 +1,5 @@
 #if 0
-#include "gcode/parsers/hurco_parser.h"
+    #include "gcode/parsers/hurco_parser.h"
 
 namespace ORNL
 {
@@ -21,13 +21,12 @@ namespace ORNL
             "M5",
             std::bind(
                 &HurcoParser::M5Handler, this, std::placeholders::_1));
-    } 
+    }
 
     void HurcoParser::M3Handler(QVector<QString> params)
     {
         if(params.size() != 1)
         {
-            //throwing errors deemed too restrictive, for now, if improperly formatted, skip command
             return;
         }
 
@@ -38,7 +37,6 @@ namespace ORNL
     {
         if (!params.empty())
         {
-            //throwing errors deemed too restrictive, for now, if improperly formatted, skip command
             return;
         }
 

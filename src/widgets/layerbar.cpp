@@ -1302,10 +1302,9 @@ void LayerBar::updateLayers() {
     }
 
     // Retrieve the slicing vector
-    QVector3D slicing_vector = {
-        GSM->getGlobal()->setting<float>(Constants::ProfileSettings::SlicingVector::kSlicingVectorX),
-        GSM->getGlobal()->setting<float>(Constants::ProfileSettings::SlicingVector::kSlicingVectorY),
-        GSM->getGlobal()->setting<float>(Constants::ProfileSettings::SlicingVector::kSlicingVectorZ)};
+    QVector3D slicing_vector = {GSM->getGlobal()->setting<float>(PS::SlicingVector::kSlicingVectorX),
+                                GSM->getGlobal()->setting<float>(PS::SlicingVector::kSlicingVectorY),
+                                GSM->getGlobal()->setting<float>(PS::SlicingVector::kSlicingVectorZ)};
     slicing_vector.normalize();
 
     // Retrieve the part min and max in the slicing plane normal direction
@@ -1315,11 +1314,11 @@ void LayerBar::updateLayers() {
     Plane slicing_plane(part_min, slicing_vector);
 
     Distance global_layer_height;
-    if (m_part->getSb()->contains(Constants::ProfileSettings::Layer::kLayerHeight)) {
-        global_layer_height = m_part->getSb()->setting<Distance>(Constants::ProfileSettings::Layer::kLayerHeight);
+    if (m_part->getSb()->contains(PS::Layer::kLayerHeight)) {
+        global_layer_height = m_part->getSb()->setting<Distance>(PS::Layer::kLayerHeight);
     }
     else {
-        global_layer_height = GSM->getGlobal()->setting<Distance>(Constants::ProfileSettings::Layer::kLayerHeight);
+        global_layer_height = GSM->getGlobal()->setting<Distance>(PS::Layer::kLayerHeight);
     }
 
     int layer_count = 0;
@@ -1376,9 +1375,8 @@ void LayerBar::updateLayers() {
 
             // If current layer is in range that modifies the layer_height, use range height otherwise use global/part
             // height
-            if (is_in_range && ranges[range_id]->getSb()->contains(Constants::ProfileSettings::Layer::kLayerHeight)) {
-                Distance range_height =
-                    ranges[range_id]->getSb()->setting<Distance>(Constants::ProfileSettings::Layer::kLayerHeight);
+            if (is_in_range && ranges[range_id]->getSb()->contains(PS::Layer::kLayerHeight)) {
+                Distance range_height = ranges[range_id]->getSb()->setting<Distance>(PS::Layer::kLayerHeight);
                 Point p = slicing_plane.point() + (slicing_vector * range_height());
                 range_height = slicing_plane.distanceToPoint(p); // height in direction normal to slicing plane
 
@@ -1394,9 +1392,9 @@ void LayerBar::updateLayers() {
         // if the part is not an even division of the layer height, it is possible to over count
         // Subtract the last layer if its cross-section (taken at the middle of the layer) is above the part height
         Distance last_layer_height;
-        if (is_in_range && ranges[range_id]->getSb()->contains(Constants::ProfileSettings::Layer::kLayerHeight)) {
-            Point p = slicing_plane.point() + (slicing_vector * ranges[range_id]->getSb()->setting<Distance>(
-                                                                    Constants::ProfileSettings::Layer::kLayerHeight)());
+        if (is_in_range && ranges[range_id]->getSb()->contains(PS::Layer::kLayerHeight)) {
+            Point p = slicing_plane.point() +
+                      (slicing_vector * ranges[range_id]->getSb()->setting<Distance>(PS::Layer::kLayerHeight)());
             last_layer_height = slicing_plane.distanceToPoint(p);
         }
         else {
@@ -1511,10 +1509,8 @@ void LayerBar::splitRange(LayerBar::dot_range* range) {
 }
 
 void LayerBar::handleModifiedSetting(QString key) {
-    if (key == Constants::ProfileSettings::Layer::kLayerHeight ||
-        key == Constants::ProfileSettings::SlicingVector::kSlicingVectorX ||
-        key == Constants::ProfileSettings::SlicingVector::kSlicingVectorY ||
-        key == Constants::ProfileSettings::SlicingVector::kSlicingVectorZ) {
+    if (key == PS::Layer::kLayerHeight || key == PS::SlicingVector::kSlicingVectorX ||
+        key == PS::SlicingVector::kSlicingVectorY || key == PS::SlicingVector::kSlicingVectorZ) {
         updateLayers();
     }
 }

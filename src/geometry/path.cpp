@@ -130,10 +130,9 @@ void Path::addNozzle(int nozzle) {
 }
 
 void Path::adjustMultiNozzle() {
-    if (GSM->getGlobal()->setting<bool>(
-            Constants::ExperimentalSettings::MultiNozzle::kEnableMultiNozzleMultiMaterial)) {
+    if (GSM->getGlobal()->setting<bool>(ES::MultiNozzle::kEnableMultiNozzleMultiMaterial)) {
         // get the nozzle materials and offsets from settings
-        int num_nozzles = GSM->getGlobal()->setting<int>(Constants::ExperimentalSettings::MultiNozzle::kNozzleCount);
+        int num_nozzles = GSM->getGlobal()->setting<int>(ES::MultiNozzle::kNozzleCount);
         QVector<Point> nozzle_offsets;
         nozzle_offsets.reserve(num_nozzles);
 
@@ -141,14 +140,10 @@ void Path::adjustMultiNozzle() {
         nozzle_materials.reserve(num_nozzles);
 
         for (int nozzle = 0; nozzle < num_nozzles; ++nozzle) {
-            Distance x = GSM->getGlobal()->setting<Distance>(
-                Constants::ExperimentalSettings::MultiNozzle::kNozzleOffsetX, nozzle);
-            Distance y = GSM->getGlobal()->setting<Distance>(
-                Constants::ExperimentalSettings::MultiNozzle::kNozzleOffsetY, nozzle);
-            Distance z = GSM->getGlobal()->setting<Distance>(
-                Constants::ExperimentalSettings::MultiNozzle::kNozzleOffsetZ, nozzle);
-            int material =
-                GSM->getGlobal()->setting<int>(Constants::ExperimentalSettings::MultiNozzle::kNozzleMaterial, nozzle);
+            Distance x = GSM->getGlobal()->setting<Distance>(ES::MultiNozzle::kNozzleOffsetX, nozzle);
+            Distance y = GSM->getGlobal()->setting<Distance>(ES::MultiNozzle::kNozzleOffsetY, nozzle);
+            Distance z = GSM->getGlobal()->setting<Distance>(ES::MultiNozzle::kNozzleOffsetZ, nozzle);
+            int material = GSM->getGlobal()->setting<int>(ES::MultiNozzle::kNozzleMaterial, nozzle);
 
             nozzle_offsets.push_back(Point(x(), y(), z()));
             nozzle_materials.push_back(material);
@@ -156,7 +151,7 @@ void Path::adjustMultiNozzle() {
 
         // adjust segments to use nozzle according to materials
         for (auto& current_segment : getSegments()) {
-            int segment_material = current_segment->getSb()->setting<int>(Constants::SegmentSettings::kMaterialNumber);
+            int segment_material = current_segment->getSb()->setting<int>(SS::kMaterialNumber);
 
             // find a nozzle with the current segment's material
             // selects first nozzle if more than one has correct material

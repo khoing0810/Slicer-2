@@ -1,20 +1,16 @@
-#ifndef GCODE_SANDIA_SAVER_H
-#define GCODE_SANDIA_SAVER_H
+#pragma once
 
-// Qt
-#include <QThread>
-
+#include "QThread"
 #include "gcode/gcode_meta.h"
 
-namespace ORNL
-{
+namespace ORNL {
 /*!
-     * \class GCodeSandiaSaver
-     * \brief Threaded class that provides additional gcode processing.
-     */
+ * \class GCodeSandiaSaver
+ * \brief Threaded class that provides additional gcode processing.
+ */
 class GCodeSandiaSaver : public QThread {
     Q_OBJECT
-public:
+  public:
     //! \brief Constructor
     //! \param tempLocation: location of gcode file
     //! \param path: path to output
@@ -26,13 +22,12 @@ public:
     //! \brief Function that is run when start is called on this thread.
     void run() override;
 
-private:
+  private:
     //! \brief Temporary file location, output path, output filename, and text to output
     QString m_temp_location, m_path, m_filename, m_text;
 
     //! \brief Meta info determined from file
     GcodeMeta m_selected_meta;
 
-};  // class GCodeSandiaSaver
-}  // namespace ORNL
-#endif // GCODE_SANDIA_SAVER_H
+}; // class GCodeSandiaSaver
+} // namespace ORNL

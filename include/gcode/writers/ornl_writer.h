@@ -1,7 +1,4 @@
-#ifndef ORNL_WRITER_H
-#define ORNL_WRITER_H
-
-//! \file ornl_writer.h
+#pragma once
 
 #include "gcode/gcode_meta.h"
 #include "gcode/writers/writer_base.h"
@@ -75,7 +72,7 @@ class ORNLWriter : public WriterBase {
     //! \brief Writes G-Code for a pause, G4
     QString writeDwell(Time time) override;
 
-  private:    //! \brief Defines the machine type - used to differentiate between polymer extrusion and wire-arc
+  private: //! \brief Defines the machine type - used to differentiate between polymer extrusion and wire-arc
     MachineType m_machine_type;
     //! \brief Writes G-Code to enable the extruder
     QString writeExtruderOn(RegionType region_type, int rpm, int extruder_number);
@@ -89,7 +86,7 @@ class ORNLWriter : public WriterBase {
     //! \brief State variables
     AngularVelocity m_current_rpm;
     int m_current_recipe;
-	int m_current_robot;
+    int m_current_robot;
 
     //! \brief True if first travel, false for subsequent travels
     bool m_first_travel;
@@ -103,8 +100,5 @@ class ORNLWriter : public WriterBase {
     //! \brief Defines the current region type - useful for determining how to enable/disable deposition
     RegionType m_current_type;
 
-
-
 }; // class ORNLWriter
 } // namespace ORNL
-#endif // ORNL_WRITER_H

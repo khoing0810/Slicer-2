@@ -50,29 +50,29 @@ void SettingsBase::json(const fifojson& j) { m_json = j; }
 
 void SettingsBase::makeGlobalAdjustments() {
     // Spiralize - should print one single perimeter bead on every layer without and modifiers
-    if (setting<bool>(Constants::ProfileSettings::SpecialModes::kEnableSpiralize)) {
+    if (setting<bool>(PS::SpecialModes::kEnableSpiralize)) {
         // Perimeter
-        setSetting(Constants::ProfileSettings::Perimeter::kCount, 1);
+        setSetting(PS::Perimeter::kCount, 1);
         // Inset
-        setSetting(Constants::ProfileSettings::Inset::kEnable, false);
+        setSetting(PS::Inset::kEnable, false);
         // Skeleton
-        setSetting(Constants::ProfileSettings::Skeleton::kEnable, false);
+        setSetting(PS::Skeleton::kEnable, false);
         // Skin
-        setSetting(Constants::ProfileSettings::Skin::kEnable, false);
+        setSetting(PS::Skin::kEnable, false);
         // Infill
-        setSetting(Constants::ProfileSettings::Infill::kEnable, false);
+        setSetting(PS::Infill::kEnable, false);
         // Support
-        setSetting(Constants::ProfileSettings::Support::kEnable, false);
+        setSetting(PS::Support::kEnable, false);
         // Laser Scanner
-        setSetting(Constants::ProfileSettings::LaserScanner::kLaserScanner, false);
+        setSetting(PS::LaserScanner::kLaserScanner, false);
         // Thermal Scanner
-        setSetting(Constants::ProfileSettings::ThermalScanner::kThermalScanner, false);
+        setSetting(PS::ThermalScanner::kThermalScanner, false);
         // Platform Adhesion
-        setSetting(Constants::MaterialSettings::PlatformAdhesion::kRaftEnable, false);
-        setSetting(Constants::MaterialSettings::PlatformAdhesion::kBrimEnable, false);
-        setSetting(Constants::MaterialSettings::PlatformAdhesion::kSkirtEnable, false);
+        setSetting(MS::PlatformAdhesion::kRaftEnable, false);
+        setSetting(MS::PlatformAdhesion::kBrimEnable, false);
+        setSetting(MS::PlatformAdhesion::kSkirtEnable, false);
 
-        setSetting(Constants::MaterialSettings::TipWipe::kPerimeterEnable, false);
+        setSetting(MS::TipWipe::kPerimeterEnable, false);
     }
 }
 
@@ -82,101 +82,99 @@ void SettingsBase::makeLocalAdjustments(int layer_number) {
     // perimeter adjustment - by default if on or off for all layers, settings will reflect that
     // if alternating, certain layers need adjusting
     PrintDirection perimeterDirection =
-        static_cast<PrintDirection>(setting<int>(Constants::ProfileSettings::Ordering::kPerimeterReverseDirection));
+        static_cast<PrintDirection>(setting<int>(PS::Ordering::kPerimeterReverseDirection));
     if (perimeterDirection == PrintDirection::kReverse_Alternating_Layers) {
         if (layer_number % 2 == 0)
-            setSetting(Constants::ProfileSettings::Ordering::kPerimeterReverseDirection,
-                       (int)PrintDirection::kReverse_off);
+            setSetting(PS::Ordering::kPerimeterReverseDirection, (int)PrintDirection::kReverse_off);
         else
-            setSetting(Constants::ProfileSettings::Ordering::kPerimeterReverseDirection,
-                       (int)PrintDirection::kReverse_All_Layers);
+            setSetting(PS::Ordering::kPerimeterReverseDirection, (int)PrintDirection::kReverse_All_Layers);
     }
 
     // inset adjustment - by default if on or off for all layers, settings will reflect that
     // if alternating, certain layers need adjusting
-    PrintDirection insetDirection =
-        static_cast<PrintDirection>(setting<int>(Constants::ProfileSettings::Ordering::kInsetReverseDirection));
+    PrintDirection insetDirection = static_cast<PrintDirection>(setting<int>(PS::Ordering::kInsetReverseDirection));
     if (insetDirection == PrintDirection::kReverse_Alternating_Layers) {
         if (layer_number % 2 == 0)
-            setSetting(Constants::ProfileSettings::Ordering::kInsetReverseDirection, (int)PrintDirection::kReverse_off);
+            setSetting(PS::Ordering::kInsetReverseDirection, (int)PrintDirection::kReverse_off);
         else
-            setSetting(Constants::ProfileSettings::Ordering::kInsetReverseDirection,
-                       (int)PrintDirection::kReverse_All_Layers);
+            setSetting(PS::Ordering::kInsetReverseDirection, (int)PrintDirection::kReverse_All_Layers);
     }
 
     // alternating seam adjustment
     PointOrderOptimization pointOrder =
-        static_cast<PointOrderOptimization>(setting<int>(Constants::ProfileSettings::Optimizations::kPointOrder));
+        static_cast<PointOrderOptimization>(setting<int>(PS::Optimizations::kPointOrder));
     if (pointOrder == PointOrderOptimization::kCustomPoint &&
-        setting<bool>(Constants::ProfileSettings::Optimizations::kEnableSecondCustomLocation) &&
-        setting<bool>(Constants::ProfileSettings::Optimizations::kEnableSecondCustomLocationEveryTwo)) {
+        setting<bool>(PS::Optimizations::kEnableSecondCustomLocation) &&
+        setting<bool>(PS::Optimizations::kEnableSecondCustomLocationEveryTwo)) {
         if (layer_number % 4 == 0) {
-            setSetting(Constants::ProfileSettings::Optimizations::kCustomPointXLocation,
-                       (double)setting<double>(Constants::ProfileSettings::Optimizations::kCustomPointSecondXLocation));
-            setSetting(Constants::ProfileSettings::Optimizations::kCustomPointYLocation,
-                       (double)setting<double>(Constants::ProfileSettings::Optimizations::kCustomPointSecondYLocation));
+            setSetting(PS::Optimizations::kCustomPointXLocation,
+                       (double)setting<double>(PS::Optimizations::kCustomPointSecondXLocation));
+            setSetting(PS::Optimizations::kCustomPointYLocation,
+                       (double)setting<double>(PS::Optimizations::kCustomPointSecondYLocation));
         }
         else if (layer_number % 3 == 0) {
-            setSetting(Constants::ProfileSettings::Optimizations::kCustomPointXLocation,
-                       (double)setting<double>(Constants::ProfileSettings::Optimizations::kCustomPointSecondXLocation));
-            setSetting(Constants::ProfileSettings::Optimizations::kCustomPointYLocation,
-                       (double)setting<double>(Constants::ProfileSettings::Optimizations::kCustomPointSecondYLocation));
+            setSetting(PS::Optimizations::kCustomPointXLocation,
+                       (double)setting<double>(PS::Optimizations::kCustomPointSecondXLocation));
+            setSetting(PS::Optimizations::kCustomPointYLocation,
+                       (double)setting<double>(PS::Optimizations::kCustomPointSecondYLocation));
         }
     }
     else if (pointOrder == PointOrderOptimization::kCustomPoint &&
-             setting<bool>(Constants::ProfileSettings::Optimizations::kEnableSecondCustomLocation)) {
+             setting<bool>(PS::Optimizations::kEnableSecondCustomLocation)) {
         if (layer_number % 2 == 0) {
-            setSetting(Constants::ProfileSettings::Optimizations::kCustomPointXLocation,
-                       (double)setting<double>(Constants::ProfileSettings::Optimizations::kCustomPointSecondXLocation));
-            setSetting(Constants::ProfileSettings::Optimizations::kCustomPointYLocation,
-                       (double)setting<double>(Constants::ProfileSettings::Optimizations::kCustomPointSecondYLocation));
+            setSetting(PS::Optimizations::kCustomPointXLocation,
+                       (double)setting<double>(PS::Optimizations::kCustomPointSecondXLocation));
+            setSetting(PS::Optimizations::kCustomPointYLocation,
+                       (double)setting<double>(PS::Optimizations::kCustomPointSecondYLocation));
         }
     }
 
-    if (setting<bool>(Constants::ProfileSettings::Infill::kEnable)) {
+    if (setting<bool>(PS::Infill::kEnable)) {
         // modify the infill_angle for each specific layer before the setting being passed to the island and region
-        Angle infill_angle = setting<Angle>(Constants::ProfileSettings::Infill::kAngle);
-        Angle infill_angle_rotation = setting<Angle>(Constants::ProfileSettings::Infill::kAngleRotation);
+        Angle infill_angle = setting<Angle>(PS::Infill::kAngle);
+        Angle infill_angle_rotation = setting<Angle>(PS::Infill::kAngleRotation);
 
         // For issue #239: combine infill for every X layers
-        int combineXLayers = setting<int>(Constants::ProfileSettings::Infill::kCombineXLayers);
-        int combineLayerShift = setting<int>(Constants::ProfileSettings::Infill::kCombineLayerShift);
+        int combineXLayers = setting<int>(PS::Infill::kCombineXLayers);
+        int combineLayerShift = setting<int>(PS::Infill::kCombineLayerShift);
         if (combineXLayers > 1) {
             // layer_number is 0 based, while Layer::m_layer_nr is 1 based
             if ((combineLayerShift >= layer_number + 1) ||
                 (((layer_number + 1 - combineLayerShift) > 0) &&
-                 ((layer_number + 1 - combineLayerShift) % combineXLayers != 0)))
-                setSetting(Constants::ProfileSettings::Infill::kEnable, false);
-            else
+                 ((layer_number + 1 - combineLayerShift) % combineXLayers != 0))) {
+                setSetting(PS::Infill::kEnable, false);
+            }
+            else {
                 infill_angle = infill_angle + infill_angle_rotation * (layer_number / combineXLayers);
+            }
         }
         else {
             infill_angle = infill_angle + infill_angle_rotation * layer_number;
         }
-        setSetting(Constants::ProfileSettings::Infill::kAngle, infill_angle);
+        setSetting(PS::Infill::kAngle, infill_angle);
     }
 
-    if (setting<bool>(Constants::ProfileSettings::Skin::kEnable)) {
+    if (setting<bool>(PS::Skin::kEnable)) {
         // modify the skin_angle for each specific layer before the setting being passed to the island and region
-        Angle skin_angle = setting<Angle>(Constants::ProfileSettings::Skin::kAngle);
-        Angle skin_angle_rotation = setting<Angle>(Constants::ProfileSettings::Skin::kAngleRotation);
+        Angle skin_angle = setting<Angle>(PS::Skin::kAngle);
+        Angle skin_angle_rotation = setting<Angle>(PS::Skin::kAngleRotation);
         skin_angle = skin_angle + skin_angle_rotation * layer_number;
-        setSetting(Constants::ProfileSettings::Skin::kAngle, skin_angle);
+        setSetting(PS::Skin::kAngle, skin_angle);
 
-        if (setting<bool>(Constants::ProfileSettings::Skin::kInfillEnable)) {
-            Angle skin_infill_angle = setting<Angle>(Constants::ProfileSettings::Skin::kInfillAngle);
-            Angle skin_infill_angle_rotation = setting<Angle>(Constants::ProfileSettings::Skin::kInfillRotation);
+        if (setting<bool>(PS::Skin::kInfillEnable)) {
+            Angle skin_infill_angle = setting<Angle>(PS::Skin::kInfillAngle);
+            Angle skin_infill_angle_rotation = setting<Angle>(PS::Skin::kInfillRotation);
             skin_infill_angle = skin_infill_angle + skin_infill_angle_rotation * layer_number;
-            setSetting(Constants::ProfileSettings::Skin::kInfillAngle, skin_infill_angle);
+            setSetting(PS::Skin::kInfillAngle, skin_infill_angle);
         }
     }
 
-    if (setting<bool>(Constants::ExperimentalSettings::RPBFSlicing::kSectorStaggerEnable)) {
-        Angle staggerAngle = setting<Angle>(Constants::ExperimentalSettings::RPBFSlicing::kSectorStaggerAngle);
+    if (setting<bool>(ES::RPBFSlicing::kSectorStaggerEnable)) {
+        Angle staggerAngle = setting<Angle>(ES::RPBFSlicing::kSectorStaggerAngle);
         if (layer_number % 2 == 1)
-            setSetting(Constants::ExperimentalSettings::RPBFSlicing::kSectorStaggerAngle, staggerAngle * -1);
+            setSetting(ES::RPBFSlicing::kSectorStaggerAngle, staggerAngle * -1);
         else
-            setSetting(Constants::ExperimentalSettings::RPBFSlicing::kSectorStaggerAngle, 0);
+            setSetting(ES::RPBFSlicing::kSectorStaggerAngle, 0);
     }
 }
 } // namespace ORNL

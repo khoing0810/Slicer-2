@@ -1,17 +1,16 @@
 #include "gcode/parsers/common_parser.h"
 
+#include "QRegExp"
+#include "QString"
+#include "QStringBuilder"
+#include "QStringList"
+#include "QTextStream"
+#include "QVector"
+#include "QtMath"
 #include "exceptions/exceptions.h"
 #include "gcode/gcode_motion_estimate.h"
 #include "managers/settings/settings_manager.h"
 #include "units/unit.h"
-
-#include <QString>
-#include <QStringBuilder>
-#include <QStringList>
-#include <QTextStream>
-#include <QVector>
-#include <QtMath>
-#include <QRegExp>
 
 namespace ORNL {
 CommonParser::CommonParser(GcodeMeta meta, bool allowLayerAlter, QStringList& lines, QStringList& upperLines)
@@ -49,7 +48,7 @@ CommonParser::CommonParser(GcodeMeta meta, bool allowLayerAlter, QStringList& li
 
 Distance CommonParser::getCurrentGXDistance() {
     QSharedPointer<SettingsBase> sb = GSM->getGlobal();
-    bool uses_b = sb->setting<bool>(Constants::MaterialSettings::Filament::kFilamentBAxis);
+    bool uses_b = sb->setting<bool>(MS::Filament::kFilamentBAxis);
 
     return MotionEstimation::calculateTimeAndVolume(
         m_current_layer, m_with_F_value, m_current_gcode_command.getCommandID() == 0, m_extruders_on,
@@ -115,7 +114,7 @@ QHash<QString, double> CommonParser::parseFooter() {
                             else if (key == Constants::GcodeFileVariables::kForceMinLayerTimeMethod)
                                 foundForcedMinLayerTimeMethod = true;
 
-                            if (key_root.toLower() == Constants::ExperimentalSettings::MultiNozzle::kNozzleCount) {
+                            if (key_root.toLower() == ES::MultiNozzle::kNozzleCount) {
                                 m_num_extruders = (int)value >= 1 ? (int)value : 1;
                                 for (int i = 0; i < m_num_extruders; ++i) {
                                     m_extruders_on.push_back(false);
@@ -144,10 +143,10 @@ QHash<QString, double> CommonParser::parseFooter() {
     //   force_minimum_layer_time: bool
     //   minimum_layer_time_method: enum, 0=Dwell time, 1=Modify feedrate
     if (foundForcedMinLayerTime && !foundForcedMinLayerTimeMethod) {
-        int oldValue = int(m_file_settings[Constants::MaterialSettings::Cooling::kForceMinLayerTime]);
+        int oldValue = int(m_file_settings[MS::Cooling::kForceMinLayerTime]);
         if (oldValue > 0) {
-            m_file_settings[Constants::MaterialSettings::Cooling::kForceMinLayerTime] = 1;
-            m_file_settings.insert(Constants::MaterialSettings::Cooling::kForceMinLayerTimeMethod, oldValue - 1);
+            m_file_settings[MS::Cooling::kForceMinLayerTime] = 1;
+            m_file_settings.insert(MS::Cooling::kForceMinLayerTimeMethod, oldValue - 1);
             m_necessary_variables_copy.remove(Constants::GcodeFileVariables::kForceMinLayerTimeMethod);
         }
     }
@@ -165,9 +164,9 @@ QHash<QString, double> CommonParser::parseFooter() {
 
     // after parsing all nozzle offsets, group by extruder and put into vector
     for (int i = 0; i < m_num_extruders; ++i) {
-        QString x_key = Constants::ExperimentalSettings::MultiNozzle::kNozzleOffsetX + "_" + QString::number(i);
-        QString y_key = Constants::ExperimentalSettings::MultiNozzle::kNozzleOffsetY + "_" + QString::number(i);
-        QString z_key = Constants::ExperimentalSettings::MultiNozzle::kNozzleOffsetZ + "_" + QString::number(i);
+        QString x_key = ES::MultiNozzle::kNozzleOffsetX + "_" + QString::number(i);
+        QString y_key = ES::MultiNozzle::kNozzleOffsetY + "_" + QString::number(i);
+        QString z_key = ES::MultiNozzle::kNozzleOffsetZ + "_" + QString::number(i);
 
         double x = m_file_settings[x_key];
         double y = m_file_settings[y_key];
@@ -187,18 +186,18 @@ void CommonParser::checkAndSetNecessarySettings() {
         while (i.hasNext()) {
             i.next();
             QString currentVal = i.value();
-            if (currentVal == Constants::MaterialSettings::Cooling::kForceMinLayerTime)
+            if (currentVal == MS::Cooling::kForceMinLayerTime)
                 m_file_settings.insert(i.value(), (double)sb->setting<bool>(currentVal));
             else
                 m_file_settings.insert(i.value(), sb->setting<double>(currentVal));
         }
     }
 
-    MotionEstimation::z_speed = m_file_settings[Constants::PrinterSettings::MachineSpeed::kZSpeed];
-    MotionEstimation::max_xy_speed = m_file_settings[Constants::PrinterSettings::MachineSpeed::kMaxXYSpeed];
-    MotionEstimation::w_table_speed = m_file_settings[Constants::PrinterSettings::MachineSpeed::kWTableSpeed];
-    MotionEstimation::layerThickness = m_file_settings[Constants::ProfileSettings::Layer::kLayerHeight];
-    MotionEstimation::extrusionWidth = m_file_settings[Constants::ProfileSettings::Layer::kBeadWidth];
+    MotionEstimation::z_speed = m_file_settings[PRS::MachineSpeed::kZSpeed];
+    MotionEstimation::max_xy_speed = m_file_settings[PRS::MachineSpeed::kMaxXYSpeed];
+    MotionEstimation::w_table_speed = m_file_settings[PRS::MachineSpeed::kWTableSpeed];
+    MotionEstimation::layerThickness = m_file_settings[PS::Layer::kLayerHeight];
+    MotionEstimation::extrusionWidth = m_file_settings[PS::Layer::kBeadWidth];
 
     if (MotionEstimation::max_xy_speed == 0) {
         MotionEstimation::max_xy_speed = 25400;
@@ -206,11 +205,11 @@ void CommonParser::checkAndSetNecessarySettings() {
     }
 
     if (m_allow_layer_alter) {
-        if (m_file_settings[Constants::MaterialSettings::Cooling::kForceMinLayerTime]) {
-            m_min_layer_time_choice = static_cast<ForceMinimumLayerTime>(
-                (int)m_file_settings[Constants::MaterialSettings::Cooling::kForceMinLayerTimeMethod]);
-            m_min_layer_time_allowed = m_file_settings[Constants::MaterialSettings::Cooling::kMinLayerTime];
-            m_max_layer_time_allowed = m_file_settings[Constants::MaterialSettings::Cooling::kMaxLayerTime];
+        if (m_file_settings[MS::Cooling::kForceMinLayerTime]) {
+            m_min_layer_time_choice =
+                static_cast<ForceMinimumLayerTime>((int)m_file_settings[MS::Cooling::kForceMinLayerTimeMethod]);
+            m_min_layer_time_allowed = m_file_settings[MS::Cooling::kMinLayerTime];
+            m_max_layer_time_allowed = m_file_settings[MS::Cooling::kMaxLayerTime];
         }
     }
 }
@@ -291,7 +290,7 @@ QList<QList<GcodeCommand>> CommonParser::parseLines(int layerSkip) {
     QStringMatcher layerDelimiter(m_layer_delimiter);
 
     QString newCurrentLine, zOffsetString;
-    double currentZOffset = sb->setting<Distance>(Constants::PrinterSettings::Dimensions::kZOffset).to(m_distance_unit);
+    double currentZOffset = sb->setting<Distance>(PRS::Dimensions::kZOffset).to(m_distance_unit);
     bool no_error;
 
     // parse each line
@@ -299,8 +298,7 @@ QList<QList<GcodeCommand>> CommonParser::parseLines(int layerSkip) {
         // extract components of command
         // handlers will also update appropriate state
         // if the line is not just an empty line or whitespace
-        if (m_upper_lines[m_current_line].contains("[#") &&
-            sb->setting<int>(Constants::PrinterSettings::Dimensions::kUseVariableForZ)) {
+        if (m_upper_lines[m_current_line].contains("[#") && sb->setting<int>(PRS::Dimensions::kUseVariableForZ)) {
             // If using a variable Z, find the value added to the variable, calculate the total value of Z by replacing
             // the variable with the value from the printer settings then create a new line of g-code to be sent to the
             // parser that is formatted the way a line is normally formatted (without the variable)
@@ -377,8 +375,8 @@ QList<QList<GcodeCommand>> CommonParser::parseLines(int layerSkip) {
                 // If a new layer has just started, check if previous layer needs to be adjusted
                 // to meet the minimum layer time
                 if (m_current_gcode_command.getCommandIsEndOfLayer() || m_current_line == m_current_end_line) {
-                    if (m_file_settings[Constants::MaterialSettings::Cooling::kForceMinLayerTime] &&
-                        m_allow_layer_alter && m_current_layer > 0) {
+                    if (m_file_settings[MS::Cooling::kForceMinLayerTime] && m_allow_layer_alter &&
+                        m_current_layer > 0) {
                         Time increaseTime = m_min_layer_time_allowed - m_layer_times[m_current_layer][m_current_nozzle];
                         Time decreaseTime = m_layer_times[m_current_layer][m_current_nozzle] - m_max_layer_time_allowed;
 
@@ -1626,10 +1624,10 @@ void CommonParser::AddDwell(double dwellTime) {
     int insertIndex = m_current_line - 1 + m_insertions;
     QSharedPointer<SettingsBase> sb = GSM->getGlobal();
 
-    if (sb->setting<bool>(Constants::MaterialSettings::Purge::kEnablePurgeDwell)) {
+    if (sb->setting<bool>(MS::Purge::kEnablePurgeDwell)) {
         QString rv;
 
-        QString custom_code = sb->setting<QString>(Constants::MaterialSettings::Cooling::kPostPauseCode);
+        QString custom_code = sb->setting<QString>(MS::Cooling::kPostPauseCode);
         if (!(custom_code.isNull() || custom_code.isEmpty())) {
             auto custom_code_lines = custom_code.split('\n');
             auto custom_code_lines_count = custom_code_lines.length();
@@ -1640,12 +1638,12 @@ void CommonParser::AddDwell(double dwellTime) {
         }
 
         double new_dwellTime;
-        double purgeTime = sb->setting<double>(Constants::MaterialSettings::Purge::kPurgeDwellDuration);
+        double purgeTime = sb->setting<double>(MS::Purge::kPurgeDwellDuration);
         double purgeLength;
         double purgeRate;
-        if (sb->setting<int>(Constants::PrinterSettings::MachineSetup::kMachineType) == 1) {
-            double purgeLength = sb->setting<double>(Constants::MaterialSettings::Purge::kPurgeLength);
-            double purgeRate = sb->setting<double>(Constants::MaterialSettings::Purge::kPurgeFeedrate);
+        if (sb->setting<int>(PRS::MachineSetup::kMachineType) == 1) {
+            double purgeLength = sb->setting<double>(MS::Purge::kPurgeLength);
+            double purgeRate = sb->setting<double>(MS::Purge::kPurgeFeedrate);
             new_dwellTime = dwellTime - purgeLength / purgeRate;
         }
         else {
@@ -1653,37 +1651,27 @@ void CommonParser::AddDwell(double dwellTime) {
         }
 
         // Purge
-        if (sb->setting<int>(Constants::PrinterSettings::MachineSetup::kMachineType) == 1) {
-            MotionEstimation::m_previous_e += sb->setting<Distance>(Constants::MaterialSettings::Purge::kPurgeLength);
-            if (sb->setting<bool>(Constants::MaterialSettings::Filament::kFilamentBAxis)) {
-                rv =
-                    "G1 F" %
-                    QString::number(
-                        sb->setting<Velocity>(Constants::MaterialSettings::Purge::kPurgeFeedrate).to(m_velocity_unit)) %
-                    " B" % QString::number(Distance(MotionEstimation::m_previous_e).to(m_distance_unit)) % m_space %
-                    getCommentStartDelimiter() % "PURGE" % getCommentEndDelimiter();
+        if (sb->setting<int>(PRS::MachineSetup::kMachineType) == 1) {
+            MotionEstimation::m_previous_e += sb->setting<Distance>(MS::Purge::kPurgeLength);
+            if (sb->setting<bool>(MS::Filament::kFilamentBAxis)) {
+                rv = "G1 F" % QString::number(sb->setting<Velocity>(MS::Purge::kPurgeFeedrate).to(m_velocity_unit)) %
+                     " B" % QString::number(Distance(MotionEstimation::m_previous_e).to(m_distance_unit)) % m_space %
+                     getCommentStartDelimiter() % "PURGE" % getCommentEndDelimiter();
             }
             else {
-                rv =
-                    "G1 F" %
-                    QString::number(
-                        sb->setting<Velocity>(Constants::MaterialSettings::Purge::kPurgeFeedrate).to(m_velocity_unit)) %
-                    " E" % QString::number(Distance(MotionEstimation::m_previous_e).to(m_distance_unit)) % m_space %
-                    getCommentStartDelimiter() % "PURGE" % getCommentEndDelimiter();
+                rv = "G1 F" % QString::number(sb->setting<Velocity>(MS::Purge::kPurgeFeedrate).to(m_velocity_unit)) %
+                     " E" % QString::number(Distance(MotionEstimation::m_previous_e).to(m_distance_unit)) % m_space %
+                     getCommentStartDelimiter() % "PURGE" % getCommentEndDelimiter();
             }
 
             m_lines.insert(insertIndex, rv);
             ++m_insertions;
         }
         else {
-            rv = "M69 F" % QString::number(sb->setting<int>(Constants::MaterialSettings::Purge::kPurgeDwellRPM)) %
-                 " P" %
-                 QString::number(
-                     sb->setting<Time>(Constants::MaterialSettings::Purge::kPurgeDwellDuration).to(m_time_unit)) %
-                 " S" %
-                 QString::number(
-                     sb->setting<Time>(Constants::MaterialSettings::Purge::kPurgeDwellTipWipeDelay).to(m_time_unit)) %
-                 m_space % getCommentStartDelimiter() % "PURGE" % getCommentEndDelimiter();
+            rv = "M69 F" % QString::number(sb->setting<int>(MS::Purge::kPurgeDwellRPM)) % " P" %
+                 QString::number(sb->setting<Time>(MS::Purge::kPurgeDwellDuration).to(m_time_unit)) % " S" %
+                 QString::number(sb->setting<Time>(MS::Purge::kPurgeDwellTipWipeDelay).to(m_time_unit)) % m_space %
+                 getCommentStartDelimiter() % "PURGE" % getCommentEndDelimiter();
             m_lines.insert(insertIndex, rv);
             ++m_insertions;
         }
@@ -1697,30 +1685,22 @@ void CommonParser::AddDwell(double dwellTime) {
         }
 
         // Move to purge location
-        if (sb->setting<int>(Constants::PrinterSettings::MachineSetup::kSyntax) == 1) {
+        if (sb->setting<int>(PRS::MachineSetup::kSyntax) == 1) {
             rv = "M68" % m_space % getCommentStartDelimiter() % "PARK" % getCommentEndDelimiter();
             m_lines.insert(insertIndex, rv);
             ++m_insertions;
         }
         else {
-            rv =
-                "G1 F" %
-                QString::number(sb->setting<Velocity>(Constants::ProfileSettings::Travel::kSpeed).to(m_velocity_unit)) %
-                " X" %
-                QString::number(
-                    sb->setting<Distance>(Constants::PrinterSettings::Dimensions::kPurgeX).to(m_distance_unit)) %
-                " Y" %
-                QString::number(
-                    sb->setting<Distance>(Constants::PrinterSettings::Dimensions::kPurgeY).to(m_distance_unit)) %
-                " Z" %
-                QString::number(
-                    sb->setting<Distance>(Constants::PrinterSettings::Dimensions::kPurgeZ).to(m_distance_unit)) %
-                m_space % getCommentStartDelimiter() % "MOVE TO PURGE LOCATION" % getCommentEndDelimiter();
+            rv = "G1 F" % QString::number(sb->setting<Velocity>(PS::Travel::kSpeed).to(m_velocity_unit)) % " X" %
+                 QString::number(sb->setting<Distance>(PRS::Dimensions::kPurgeX).to(m_distance_unit)) % " Y" %
+                 QString::number(sb->setting<Distance>(PRS::Dimensions::kPurgeY).to(m_distance_unit)) % " Z" %
+                 QString::number(sb->setting<Distance>(PRS::Dimensions::kPurgeZ).to(m_distance_unit)) % m_space %
+                 getCommentStartDelimiter() % "MOVE TO PURGE LOCATION" % getCommentEndDelimiter();
             m_lines.insert(insertIndex, rv);
             ++m_insertions;
         }
 
-        custom_code = sb->setting<QString>(Constants::MaterialSettings::Cooling::kPrePauseCode);
+        custom_code = sb->setting<QString>(MS::Cooling::kPrePauseCode);
         if (!(custom_code.isNull() || custom_code.isEmpty())) {
             auto custom_code_lines = custom_code.split('\n');
             auto custom_code_lines_count = custom_code_lines.length();
@@ -1731,7 +1711,7 @@ void CommonParser::AddDwell(double dwellTime) {
         }
     }
     else {
-        QString custom_code = sb->setting<QString>(Constants::MaterialSettings::Cooling::kPostPauseCode);
+        QString custom_code = sb->setting<QString>(MS::Cooling::kPostPauseCode);
         if (!(custom_code.isNull() || custom_code.isEmpty())) {
             auto custom_code_lines = custom_code.split('\n');
             auto custom_code_lines_count = custom_code_lines.length();
@@ -1746,7 +1726,7 @@ void CommonParser::AddDwell(double dwellTime) {
         m_lines.insert(insertIndex, dwell);
         ++m_insertions;
 
-        custom_code = sb->setting<QString>(Constants::MaterialSettings::Cooling::kPrePauseCode);
+        custom_code = sb->setting<QString>(MS::Cooling::kPrePauseCode);
         if (!(custom_code.isNull() || custom_code.isEmpty())) {
             auto custom_code_lines = custom_code.split('\n');
             auto custom_code_lines_count = custom_code_lines.length();
@@ -1785,10 +1765,10 @@ void CommonParser::getMinMaxModifier(double& minModifier, double& maxModifier) {
         }
 
         Velocity velocity;
-        maxModifier = (sb->setting<Velocity>(Constants::PrinterSettings::MachineSpeed::kMaxXYSpeed) /
-                       velocity.from(maxFeedRate, m_velocity_unit))();
-        minModifier = (sb->setting<Velocity>(Constants::PrinterSettings::MachineSpeed::kMinXYSpeed) /
-                       velocity.from(minFeedRate, m_velocity_unit))();
+        maxModifier =
+            (sb->setting<Velocity>(PRS::MachineSpeed::kMaxXYSpeed) / velocity.from(maxFeedRate, m_velocity_unit))();
+        minModifier =
+            (sb->setting<Velocity>(PRS::MachineSpeed::kMinXYSpeed) / velocity.from(minFeedRate, m_velocity_unit))();
     }
 }
 
@@ -1807,7 +1787,7 @@ void CommonParser::AdjustFeedrate(double modifier) {
                current_layer_motion_end->getLineNumber() > m_last_layer_line_start) {
             auto parameters = current_layer_motion_end->getParameters();
             if (parameters.contains(m_f_parameter.toLatin1())) {
-                if (sb->setting<int>(Constants::MaterialSettings::Extruder::kEnableM3S)) {
+                if (sb->setting<int>(MS::Extruder::kEnableM3S)) {
                     int cmd_index = current_layer_motion_end->getLineNumber() - 1;
                     QString& line = m_lines[cmd_index];
 
@@ -1816,8 +1796,7 @@ void CommonParser::AdjustFeedrate(double modifier) {
                         double value = myMatch.captured().mid(1).toDouble();
 
                         if (value != 0) {
-                            double extruderModifier =
-                                sb->setting<double>(Constants::MaterialSettings::Cooling::kExtruderScaleFactor);
+                            double extruderModifier = sb->setting<double>(MS::Cooling::kExtruderScaleFactor);
 
                             // If slowing down, the multiplier for the extruder should be the inverse of the scale
                             // factor
@@ -1838,8 +1817,8 @@ void CommonParser::AdjustFeedrate(double modifier) {
                 QString& line = m_lines[current_layer_motion_end->getLineNumber()];
                 QRegularExpressionMatch myMatch = m_f_param_and_value.match(line);
                 double value = myMatch.captured().mid(1).toDouble();
-                line = line.left(myMatch.capturedStart()) % m_f_parameter %
-                       QString::number(value * modifier, 'f', 4) % line.mid(myMatch.capturedEnd());
+                line = line.left(myMatch.capturedStart()) % m_f_parameter % QString::number(value * modifier, 'f', 4) %
+                       line.mid(myMatch.capturedEnd());
                 current_layer_motion_end->addParameter(m_f_parameter.toLatin1(),
                                                        parameters[m_f_parameter.toLatin1()] * modifier);
             }
@@ -1850,30 +1829,26 @@ void CommonParser::AdjustFeedrate(double modifier) {
                 QString& line = m_lines[current_layer_motion_end->getLineNumber()];
                 QRegularExpressionMatch myMatch = m_q_param_and_value.match(line);
                 double value = myMatch.captured().mid(1).toDouble();
-                double extruderModifier =
-                    sb->setting<double>(Constants::MaterialSettings::Cooling::kExtruderScaleFactor);
+                double extruderModifier = sb->setting<double>(MS::Cooling::kExtruderScaleFactor);
                 // If slowing down, the multiplier for the extruder should be the inverse of the scale factor
                 if (modifier < 1)
                     extruderModifier = 1 / extruderModifier;
                 line = line.left(myMatch.capturedStart()) % m_q_parameter %
-                       QString::number(value * modifier * extruderModifier, 'f', 4) %
-                       line.mid(myMatch.capturedEnd());
+                       QString::number(value * modifier * extruderModifier, 'f', 4) % line.mid(myMatch.capturedEnd());
                 current_layer_motion_end->addParameter(m_q_parameter.toLatin1(),
                                                        parameters[m_q_parameter.toLatin1()] * modifier);
             }
             if (parameters.contains(m_s_parameter.toLatin1()) &&
-                !sb->setting<bool>(Constants::ProfileSettings::SpecialModes::kEnableWidthHeight)) {
+                !sb->setting<bool>(PS::SpecialModes::kEnableWidthHeight)) {
                 QString& line = m_lines[current_layer_motion_end->getLineNumber()];
                 QRegularExpressionMatch myMatch = m_s_param_and_value.match(line);
                 double value = myMatch.captured().mid(1).toDouble();
-                double extruderModifier =
-                    sb->setting<double>(Constants::MaterialSettings::Cooling::kExtruderScaleFactor);
+                double extruderModifier = sb->setting<double>(MS::Cooling::kExtruderScaleFactor);
                 // If slowing down, the multiplier for the extruder should be the inverse of the scale factor
                 if (modifier < 1)
                     extruderModifier = 1 / extruderModifier;
                 line = line.left(myMatch.capturedStart()) % m_s_parameter %
-                       QString::number(value * modifier * extruderModifier, 'f', 4) %
-                       line.mid(myMatch.capturedEnd());
+                       QString::number(value * modifier * extruderModifier, 'f', 4) % line.mid(myMatch.capturedEnd());
                 current_layer_motion_end->addParameter(m_s_parameter.toLatin1(),
                                                        parameters[m_s_parameter.toLatin1()] * modifier);
             }
@@ -1882,44 +1857,38 @@ void CommonParser::AdjustFeedrate(double modifier) {
     }
 }
 
-QString CommonParser::removeRotations(QString currentLine){
+QString CommonParser::removeRotations(QString currentLine) {
     QChar space(' '), x('X'), y('Y'), z('Z'), f('F'), s('S'), zero('0'), newline('\n');
     QString RX("X_R"), RY("Y_R"), RZ("Z_R"), PA("A_P"), PC("C_P");
     QString G0("G0"), G1("G1");
     QString xval, yval, zval, velocity, feedrate, newLine, temp, comment;
 
-    if(currentLine.startsWith(G0) || currentLine.startsWith(G1))
-    {
+    if (currentLine.startsWith(G0) || currentLine.startsWith(G1)) {
         temp = currentLine.mid(0, currentLine.indexOf(getCommentStartDelimiter()));
         comment = currentLine.mid(currentLine.indexOf(getCommentStartDelimiter()), currentLine.indexOf(newline));
     }
-    else
-    {
+    else {
         return currentLine;
     }
 
     QVector<QString> params = temp.split(space);
 
-    if(params[0] == G1)
-    {
+    if (params[0] == G1) {
         newLine = "G1 ";
     }
-    else if (params[0] == G0)
-    {
+    else if (params[0] == G0) {
         newLine = "G0 ";
     }
-    else
-    {
+    else {
         return currentLine;
     }
 
-    for(int i = 1, end = params.size(); i < end; ++i)
-    {
-        if(params[i].startsWith(RX) || params[i].startsWith(RY) || params[i].startsWith(RZ)
-            || params[i].startsWith(PA) || params[i].startsWith(PC))
+    for (int i = 1, end = params.size(); i < end; ++i) {
+        if (params[i].startsWith(RX) || params[i].startsWith(RY) || params[i].startsWith(RZ) ||
+            params[i].startsWith(PA) || params[i].startsWith(PC))
             continue;
-        else if((params[i].startsWith(x) || params[i].startsWith(y) || params[i].startsWith(z)) && params[i].contains('='))
-        {
+        else if ((params[i].startsWith(x) || params[i].startsWith(y) || params[i].startsWith(z)) &&
+                 params[i].contains('=')) {
             params[i] = params[i].remove('=');
             newLine += params[i] % space;
         }

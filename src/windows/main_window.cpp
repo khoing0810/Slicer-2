@@ -1,19 +1,20 @@
 #include "windows/main_window.h"
 
+#include "QFile"
+#include "QFileDialog"
+#include "QSettings"
+#include "QStatusBar"
+#include "QTimer"
 #include "managers/preferences_manager.h"
 #include "managers/session_manager.h"
+#include "managers/settings/settings_manager.h"
 #include "threading/gcode_loader.h"
 #include "threading/session_loader.h"
 #include "windows/dialogs/cs_dbg.h"
 #include "windows/dialogs/template_save.h"
 
-#include <QFile>
-#include <QFileDialog>
-#include <QSettings>
-#include <QStatusBar>
-#include <QTimer>
-
 namespace ORNL {
+
 MainWindow* MainWindow::m_singleton = nullptr;
 
 MainWindow* MainWindow::getInstance() {
@@ -25,7 +26,7 @@ MainWindow* MainWindow::getInstance() {
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), m_status(false) { continueStartup(); }
 
 void MainWindow::continueStartup() {
-    PM->importPreferences();
+    PreferencesManager::getInstance()->importPreferences();
 
     QString app_path = qApp->applicationDirPath();
 
@@ -78,12 +79,12 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {
-    if (PM->getWindowMaximizedPreference() != this->isMaximized())
-        PM->setWindowMaximizedPreference(this->isMaximized());
-    if (PM->getWindowSizePreference() != this->size())
-        PM->setWindowSizePreference(this->size());
-    if (PM->getWindowPosPreference() != this->pos())
-        PM->setWindowPosPreference(this->pos());
+    if (PreferencesManager::getInstance()->getWindowMaximizedPreference() != this->isMaximized())
+        PreferencesManager::getInstance()->setWindowMaximizedPreference(this->isMaximized());
+    if (PreferencesManager::getInstance()->getWindowSizePreference() != this->size())
+        PreferencesManager::getInstance()->setWindowSizePreference(this->size());
+    if (PreferencesManager::getInstance()->getWindowPosPreference() != this->pos())
+        PreferencesManager::getInstance()->setWindowPosPreference(this->pos());
 
     QApplication::quit();
 }
@@ -92,12 +93,12 @@ CmdWidget* MainWindow::getCmdOut() { return m_cmdbar; }
 
 void MainWindow::showEvent(QShowEvent* event) {
     QMainWindow::showEvent(event);
-    if (PM->getWindowMaximizedPreference())
+    if (PreferencesManager::getInstance()->getWindowMaximizedPreference())
         this->setWindowState(Qt::WindowMaximized);
     else {
-        if (PM->getWindowSizePreference().isValid()) {
-            this->resize(PM->getWindowSizePreference());
-            this->move(PM->getWindowPosPreference());
+        if (PreferencesManager::getInstance()->getWindowSizePreference().isValid()) {
+            this->resize(PreferencesManager::getInstance()->getWindowSizePreference());
+            this->move(PreferencesManager::getInstance()->getWindowPosPreference());
         }
     }
 }
@@ -876,7 +877,7 @@ void MainWindow::handleModifiedSetting(const QString key) {}
 QList<QAction*> MainWindow::setupSettingActions(QMenu* submenu, QString panel) {
     QList<QAction*> actions;
 
-    for (QString setting : PM->getHiddenSettings(panel)) {
+    for (QString setting : PreferencesManager::getInstance()->getHiddenSettings(panel)) {
         menu_info info = {setting, "", false, QKeySequence(), nullptr};
         createAction(info);
         m_actions.insert(setting, info);
@@ -911,7 +912,7 @@ void MainWindow::addHiddenSetting(QString panel, QString setting) {
     connect(info.action, &QAction::triggered, this,
             [this, submenu, panel, setting] { this->removeHiddenSetting(submenu, panel, setting); });
 
-    PM->addHiddenSetting(panel, setting);
+    PreferencesManager::getInstance()->addHiddenSetting(panel, setting);
 }
 
 void MainWindow::removeHiddenSetting(QMenu* menu, QString panel, QString setting) {
@@ -919,7 +920,7 @@ void MainWindow::removeHiddenSetting(QMenu* menu, QString panel, QString setting
     delete m_actions[setting].action;
     m_actions.remove(setting);
     m_settingbar->showHiddenSetting(panel, setting);
-    PM->removeHiddenSetting(panel, setting);
+    PreferencesManager::getInstance()->removeHiddenSetting(panel, setting);
 }
 
 void MainWindow::retranslateUi() {
@@ -1157,7 +1158,7 @@ void MainWindow::updateSettings(const QString& name) {
 }
 
 void MainWindow::showAllSettings(QString key, QMenu* menu) {
-    QList<QString> settings = PM->getHiddenSettings(key);
+    QList<QString> settings = PreferencesManager::getInstance()->getHiddenSettings(key);
     for (QString setting : settings) {
         this->removeHiddenSetting(menu, key, setting);
     }

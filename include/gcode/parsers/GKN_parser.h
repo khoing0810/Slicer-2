@@ -1,5 +1,4 @@
-#ifndef GKNPARSER_H
-#define GKNPARSER_H
+#pragma once
 
 #include "common_parser.h"
 
@@ -96,4 +95,3 @@ class GKNParser : public CommonParser {
     QHash<QString, QString> m_default_values;
 };
 } // namespace ORNL
-#endif // GKNPARSER_H

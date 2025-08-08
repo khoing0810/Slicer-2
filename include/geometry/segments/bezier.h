@@ -1,5 +1,4 @@
-#ifndef BEZIER_H
-#define BEZIER_H
+#pragma once
 
 #include "geometry/path.h"
 #include "geometry/segment_base.h"
@@ -87,5 +86,3 @@ class BezierSegment : public SegmentBase {
     Point m_control_b;
 };
 } // namespace ORNL
-
-#endif // BEZIER_H

@@ -1,13 +1,11 @@
 #include "graphics/objects/part_object.h"
 
-// Local
 #include "geometry/mesh/mesh_base.h"
 #include "graphics/base_view.h"
 #include "graphics/objects/arrow_object.h"
 #include "graphics/objects/axes_object.h"
 #include "graphics/objects/cube/plane_object.h"
 #include "graphics/objects/text_object.h"
-#include "managers/settings/settings_manager.h"
 #include "part/part.h"
 #include "utilities/mathutils.h"
 

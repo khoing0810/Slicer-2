@@ -1,8 +1,7 @@
-#include <QApplication>
-#include <QCommandLineParser>
-#include <QStyleFactory>
-
-// Local
+#include "QApplication"
+#include "QCommandLineParser"
+#include "QStyleFactory"
+#include "boost/preprocessor.hpp"
 #include "configs/settings_base.h"
 #include "console/command_line_processor.h"
 #include "console/main_control.h"
@@ -11,17 +10,12 @@
 #include "geometry/mesh/closed_mesh.h"
 #include "geometry/mesh/mesh_base.h"
 #include "geometry/mesh/open_mesh.h"
-#include "graphics/objects/gcode_object.h"
 #include "part/part.h"
 #include "threading/mesh_loader.h"
 #include "units/unit.h"
 #include "utilities/enums.h"
 #include "utilities/qt_json_conversion.h"
 #include "windows/main_window.h"
-
-#include <nlohmann/json.hpp>
-
-#include <boost/preprocessor.hpp>
 
 int main(int argc, char* argv[]) {
     QCoreApplication::setAttribute(Qt::AA_UseDesktopOpenGL);
@@ -93,13 +87,13 @@ int main(int argc, char* argv[]) {
         QApplication::setApplicationName("slicer2");
         QApplication::setOrganizationName("ornl");
         QApplication::setApplicationVersion(BOOST_PP_STRINGIZE(SLICER2_VERSION));
-//#ifdef WIN32
-//        HWND consoleWnd = GetConsoleWindow();
-//        DWORD dwProcessId;
-//        GetWindowThreadProcessId(consoleWnd, &dwProcessId);
-//        if (GetCurrentProcessId() == dwProcessId)
-//            ::ShowWindow(::GetConsoleWindow(), SW_HIDE);
-//#endif
+        // #ifdef WIN32
+        //         HWND consoleWnd = GetConsoleWindow();
+        //         DWORD dwProcessId;
+        //         GetWindowThreadProcessId(consoleWnd, &dwProcessId);
+        //         if (GetCurrentProcessId() == dwProcessId)
+        //             ::ShowWindow(::GetConsoleWindow(), SW_HIDE);
+        // #endif
 
         Q_INIT_RESOURCE(icons);
         Q_INIT_RESOURCE(shaders);

@@ -1,7 +1,4 @@
-#ifndef TORMACH_WRITER_H
-#define TORMACH_WRITER_H
-
-//! \file tormach_writer.h
+#pragma once
 
 #include "gcode/gcode_meta.h"
 #include "gcode/writers/writer_base.h"
@@ -118,4 +115,3 @@ class TormachWriter : public WriterBase {
 
 }; // class TORMACHWriter
 } // namespace ORNL
-#endif // TORMACH_WRITER_H

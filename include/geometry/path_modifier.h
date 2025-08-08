@@ -1,11 +1,9 @@
-#ifndef PATHMODIFIER_H
-#define PATHMODIFIER_H
+#pragma once
 
-// Local
 #include "geometry/path.h"
 #include "geometry/segments/travel.h"
-namespace ORNL {
 
+namespace ORNL {
 /**
  * @brief The PathModifierGenerator class provides functions for modifying paths.
  */
@@ -216,5 +214,3 @@ class PathModifierGenerator {
     static Distance tipWipeDistanceCovered;
 };
 } // namespace ORNL
-
-#endif // PATHMODIFIER_H
