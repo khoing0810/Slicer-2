@@ -1,7 +1,5 @@
-#ifndef PERIMETER_H
-#define PERIMETER_H
+#pragma once
 
-// Local
 #include "step/layer/regions/region_base.h"
 
 namespace ORNL {
@@ -70,6 +68,22 @@ class Perimeter : public RegionBase {
     //! \param innerMostClosedContour used for Prestarts (currently only skins/infill)
     void calculateModifiers(Path& path, bool supportsG3, QVector<Path>& innerMostClosedContour) override;
 
+    /**
+     * @brief Create a path with localized settings applied to segments based on settings regions.
+     * @param[in] line Polyline representing the path.
+     * @return Path with localized settings applied.
+     * @warning Handles cases of overlapping settings regions by applying the first region found.
+     */
+    Path createPathWithLocalizedSettings(const Polyline& line);
+
+    /**
+     * @brief Populates the segment settings with the passed settings base.
+     * @param[in,out] segment_sb: The segment settings base to populate.
+     * @param[in] parent_sb: The settings base to apply.
+     */
+    static void populateSegmentSettings(QSharedPointer<SettingsBase> segment_sb,
+                                        const QSharedPointer<SettingsBase>& parent_sb);
+
     //! \brief Holds the computed geometry before it is converted into paths
     QVector<Polyline> m_computed_geometry;
 
@@ -93,5 +107,3 @@ class Perimeter : public RegionBase {
     uint m_layer_num;
 };
 } // namespace ORNL
-
-#endif // PERIMETER_H
