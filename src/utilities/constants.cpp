@@ -535,6 +535,7 @@ const QString Constants::MaterialSettings::MultiMaterial::kEnable = "enable_mult
 const QString Constants::MaterialSettings::MultiMaterial::kPerimeterNum = "perimeter_material_num";
 const QString Constants::MaterialSettings::MultiMaterial::kInsetNum = "inset_material_num";
 const QString Constants::MaterialSettings::MultiMaterial::kSkinNum = "skin_material_num";
+const QString Constants::MaterialSettings::MultiMaterial::kSkeletonNum = "skeleton_material_num";
 const QString Constants::MaterialSettings::MultiMaterial::kInfillNum = "infill_material_num";
 const QString Constants::MaterialSettings::MultiMaterial::kTransitionDistance = "material_transition_distance";
 const QString Constants::MaterialSettings::MultiMaterial::kEnableSecondDistance = "enable_second_transition_distance";

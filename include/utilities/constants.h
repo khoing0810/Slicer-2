@@ -581,6 +581,7 @@ class Constants {
             static const QString kEnable;
             static const QString kPerimeterNum;
             static const QString kInsetNum;
+            static const QString kSkeletonNum;
             static const QString kSkinNum;
             static const QString kInfillNum;
             static const QString kTransitionDistance;

@@ -58,7 +58,7 @@ QString Skeleton::writeGCode(QSharedPointer<WriterBase> writer) {
 void Skeleton::compute(uint layer_num, QSharedPointer<SyncManager>& sync) {
     m_paths.clear();
 
-    setMaterialNumber(m_sb->setting<int>(MS::MultiMaterial::kPerimterNum));
+    setMaterialNumber(m_sb->setting<int>(MS::MultiMaterial::kSkeletonNum));
 
     incorporateLostGeometry();
 
