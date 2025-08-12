@@ -7,6 +7,10 @@
 
 #include <QtCore/QDir>
 #include <QtCore/QSharedPointer>
+#include <atomic>
+#include <thread>
+#include <vector>
+#include <functional>
 
 namespace ORNL {
 
@@ -150,11 +154,10 @@ void ImageSlicer::preProcess(nlohmann::json opt_data) {
                                yResolution) +
                      1;
 
-// let omp loose on the cross-sectioning and image generation
-#pragma omp parallel for
-    for (int i = 0; i < slicing_planes.size(); ++i) {
+
+    parallelForDynamic(0, slicing_planes.size(), 100, [&](int i) {
         Plane currentPlane = slicing_planes[i].m_slicing_plane;
-        Point shift_amount = Point(0, 0, 0);
+        Point shift_amount(0, 0, 0);
         QVector3D average_normal;
 
         QVector<PolygonListAndColor> currentCrossSections;
@@ -162,19 +165,23 @@ void ImageSlicer::preProcess(nlohmann::json opt_data) {
 
         for (int j = 0; j < allMeshes.size(); ++j) {
             if (allMeshes[j].m_mesh->max().z() >= currentPlane.point().z()) {
-                PolygonList result = CrossSection::doCrossSection(allMeshes[j].m_mesh, currentPlane, shift_amount,
-                                                                  average_normal, GSM->getGlobal());
-                for (int i = result.size() - 1; i >= 0; --i) {
-                    if (result[i].size() <= 2)
-                        result.removeAt(i);
+                PolygonList result = CrossSection::doCrossSection(
+                    allMeshes[j].m_mesh, currentPlane, shift_amount,
+                    average_normal, GSM->getGlobal());
+
+                for (int k = result.size() - 1; k >= 0; --k) {
+                    if (result[k].size() <= 2)
+                        result.removeAt(k);
                 }
-                if (result.size() > 0)
+
+                if (!result.empty())
                     currentCrossSections.push_back(PolygonListAndColor(result, allMeshes[j].m_id));
             }
         }
-        createImageStencilVTK(currentCrossSections, slicing_planes[i].m_layer, xResolution, yResolution, volumeXDim,
-                              volumeYDim);
-    }
+
+        createImageStencilVTK(currentCrossSections, slicing_planes[i].m_layer,
+                            xResolution, yResolution, volumeXDim, volumeYDim);
+    });
 
     // create companion json file
     fifojson originalName;
@@ -275,6 +282,28 @@ void ImageSlicer::createImageStencilVTK(QVector<PolygonListAndColor> geometryAnd
             .c_str());
     imageWriter->SetInputData(fullImage);
     imageWriter->Write();
+}
+
+void ImageSlicer::parallelForDynamic(int start, int end, int batchSize, const std::function<void(int)>& func) {
+    const int total = end - start;
+    std::atomic<int> index{start};
+
+    int thread_count = std::jthread::hardware_concurrency();
+    std::vector<std::jthread> threads;
+
+    for (int t = 0; t < thread_count; ++t) {
+        threads.emplace_back([&]() {
+            while (true) {
+                int i = index.fetch_add(batchSize);
+                if (i >= end) break;
+
+                int i_end = std::min(i + batchSize, end);
+                for (int j = i; j < i_end; ++j) {
+                    func(j);
+                }
+            }
+        });
+    }
 }
 
 void ImageSlicer::postProcess(nlohmann::json opt_data) { emit statusUpdate(StatusUpdateStepType::kPostProcess, 100); }

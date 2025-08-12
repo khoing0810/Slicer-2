@@ -85,6 +85,14 @@ class ImageSlicer : public TraditionalAST {
     void createImageStencilVTK(QVector<PolygonListAndColor> geometryAndColor, int layer, double xResolution,
                                double yResolution, int gridWidth, int gridHeight);
 
+
+    //! \brief Create a parallel for loop with batching behavior similar to OpenMP
+    //! \param start: Starting index for the loop
+    //! \param end: Ending index for the loop
+    //! \param batchSize: Size of each batch to process
+    //! \param func: Function to execute for each index
+    void parallelForDynamic(int start, int end, int batchSize, const std::function<void(int)>& func);
+
     //!\brief Number of digits for image file name to allow sequencing of layers
     int m_total_digits = 7;
 };
