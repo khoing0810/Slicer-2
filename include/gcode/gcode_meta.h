@@ -88,7 +88,7 @@ static GcodeMeta HaasInchMeta = {GcodeSyntax::kHaasInch,
                                  QString("("), // starting_delim
                                  QString(")"), // ending_delim
                                  in,           // distance
-                                 ms,           // time
+                                 s,            // time
                                  degree,       // angle
                                  lbm,          // mass
                                  in / minute,  // velocity

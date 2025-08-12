@@ -17,9 +17,16 @@ QString HaasWriter::writeInitialSetup(Distance minimum_x, Distance minimum_y, Di
     m_layer_start = true;
     m_min_z = 0.0f;
     m_material_number = -1;
+    m_tool_number = m_sb->setting<int>(Constants::PrinterSettings::MachineSetup::kToolNumber);
+    Distance tool_offset = 100000;
+
     QString rv;
+
     if (m_sb->setting<int>(PRS::GCode::kEnableStartupCode)) {
-        rv += "M06 T2" % m_newline % "G90G00G54X0.Y0." % m_newline % "G43H2Z100." % m_newline;
+        rv += "M06 T" % QString::number(m_tool_number) % m_newline % "G90G00G54X0.Y0." % m_newline;
+        // rv += "G43H2Z100." % m_newline;
+        rv += "G43H" % QString::number(m_tool_number) % "Z" %
+              QString::number(tool_offset.to(m_meta.m_distance_unit), 'f', 4);
     }
 
     if (m_sb->setting<int>(PRS::GCode::kEnableBoundingBox)) {
@@ -182,9 +189,9 @@ QString HaasWriter::writeLine(const Point& start_point, const Point& target_poin
     // Forces first motion of layer to issue speed (needed for spiralize mode so that feedrate is scaled properly)
     if (m_layer_start) {
         setFeedrate(speed);
-        rv += m_f % QString::number(speed.to(m_meta.m_velocity_unit));
+        rv += m_f % QString::number(speed.to(m_meta.m_velocity_unit), 'f', 4);
 
-        rv += m_s % QString::number(output_rpm);
+        rv += m_s % QString::number(output_rpm, 'f', 4);
         m_current_rpm = rpm;
 
         m_layer_start = false;
@@ -193,11 +200,11 @@ QString HaasWriter::writeLine(const Point& start_point, const Point& target_poin
     // Update feedrate and extruder speed if needed
     if (getFeedrate() != speed) {
         setFeedrate(speed);
-        rv += m_f % QString::number(speed.to(m_meta.m_velocity_unit));
+        rv += m_f % QString::number(speed.to(m_meta.m_velocity_unit), 'f', 4);
     }
 
     if (rpm != m_current_rpm) {
-        rv += m_s % QString::number(output_rpm);
+        rv += m_s % QString::number(output_rpm, 'f', 4);
         m_current_rpm = rpm;
     }
 
@@ -235,10 +242,10 @@ QString HaasWriter::writeArc(const Point& start_point, const Point& end_point, c
 
     if (getFeedrate() != speed) {
         setFeedrate(speed);
-        rv += m_f % QString::number(speed.to(m_meta.m_velocity_unit));
+        rv += m_f % QString::number(speed.to(m_meta.m_velocity_unit), 'f', 4);
     }
     if (rpm != m_current_rpm) {
-        rv += m_s % QString::number(output_rpm);
+        rv += m_s % QString::number(output_rpm, 'f', 4);
         m_current_rpm = rpm;
     }
 
@@ -359,7 +366,7 @@ QString HaasWriter::writeExtruderOn(RegionType type, int rpm) {
               m_sb->setting<int>(MS::Cooling::kForceMinLayerTimeMethod) == (int)ForceMinimumLayerTime::kSlow_Feedrate))
             m_current_rpm = m_sb->setting<int>(MS::Extruder::kInitialSpeed);
 
-        rv += m_M3 % m_s % QString::number(output_rpm) % commentSpaceLine("TURN EXTRUDER ON");
+        rv += m_M3 % m_s % QString::number(output_rpm, 'f', 4) % commentSpaceLine("TURN EXTRUDER ON");
 
         if (type == RegionType::kInset) {
             if (m_sb->setting<Time>(MS::Extruder::kOnDelayInset) > 0)
@@ -384,7 +391,7 @@ QString HaasWriter::writeExtruderOn(RegionType type, int rpm) {
     }
     else {
         output_rpm = m_sb->setting<float>(PRS::MachineSpeed::kGearRatio) * rpm;
-        rv += m_M3 % m_s % QString::number(output_rpm) % commentSpaceLine("TURN EXTRUDER ON");
+        rv += m_M3 % m_s % QString::number(output_rpm, 'f', 4) % commentSpaceLine("TURN EXTRUDER ON");
         // Only update the current rpm if not using feedrate scaling. An updated rpm value here could prevent the S
         // parameter from being issued during the first G1 motion of the path and thus the extruder rate won't properly
         // scale

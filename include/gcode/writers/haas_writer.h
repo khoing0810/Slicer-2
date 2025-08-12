@@ -72,6 +72,7 @@ class HaasWriter : public WriterBase {
   private:
     //! \brief Writes G-Code to enable the extruder
     QString writeExtruderOn(RegionType type, int rpm);
+
     //! \brief Writes G-Code to disable the extruder
     QString writeExtruderOff();
 
@@ -82,13 +83,18 @@ class HaasWriter : public WriterBase {
 
     //! \brief true if first travel, false for subsequent travels
     bool m_first_travel;
+
     //! \brief true if first printing segment, false for subsquent paths - needed for Spiralize
     bool m_first_print;
+
     //! \brief true is first print motion of the layer
     bool m_layer_start;
 
-    //! \brief preallocated prefixs commonly used in this syntax
+    //! @brief The material number to use for the current operation
     int m_material_number;
+
+    //! @brief The tool number to use for the current operation
+    int m_tool_number;
 
 }; // class HaasWriter
 } // namespace ORNL
