@@ -30,6 +30,7 @@ class SessionManager : public QObject {
   public:
     //! \brief Destructor.
     ~SessionManager();
+
     //! \brief Get the singleton instance of this object.
     static QSharedPointer<SessionManager> getInstance();
 
@@ -62,38 +63,45 @@ class SessionManager : public QObject {
 
     //! \brief Accessor to get history for all three settings tabs
     QHash<QString, QString> getMostRecentSettingHistory();
+
     //! \brief Accessor to set history for a specific setting tab
     void setMostRecentSettingHistory(QString key, QString name);
 
     //! \brief Accessor to get history for the most recent model loaded location
     QString getMostRecentModelLocation();
+
     //! \brief Accessor to set history for the most recent model loaded location
     void setMostRecentModelLocation(QString path);
 
     //! \brief Accessor to get history for the most recent project loaded location
     QString getMostRecentProjectLocation();
+
     //! \brief Accessor to set history for the most recent project loaded location
     void setMostRecentProjectLocation(QString path);
 
     //! \brief Accessor to get history for the most recent gcode export location
     QString getMostRecentGcodeLocation();
+
     //! \brief Accessor to set history for the most recent gcode export location
     void setMostRecentGcodeLocation(QString path);
 
     //! \brief Accessor to get history for the most recent settings folder location
     QString getMostRecentSettingFolderLocation();
+
     //! \brief Accessor to set history for the most recent settings folder location
     void setMostRecentSettingFolderLocation(QString path);
 
     //! \brief Accessor to get history for the most recent layer bar settings folder location
     //! \return most recent location for layer bar template files
     QString getMostRecentLayerBarSettingFolderLocation();
+
     //! \brief Accessor to set history for the most recent layer bar settings folder location
     //! \param path: file path set by user
     void setMostRecentLayerBarSettingFolderLocation(QString path);
 
     //! \brief Accessor to get history for the most recently selected http config
     QString getMostRecentHTTPConfig();
+
     //! \brief Accessor to set history for the most recently selected http config
     void setMostRecentHTTPConfig(QString config);
 
@@ -262,6 +270,7 @@ class SessionManager : public QObject {
 
     //! \brief Load session history for various dialogs
     void loadHistory();
+
     //! \brief Save session history for various dialogs
     void saveHistory();
 
