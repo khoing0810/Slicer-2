@@ -724,6 +724,8 @@ const QString Constants::ProfileSettings::Optimizations::kCustomPointSecondXLoca
     "custom_second_point_order_x_location";
 const QString Constants::ProfileSettings::Optimizations::kCustomPointSecondYLocation =
     "custom_second_point_order_y_location";
+const QString Constants::ProfileSettings::Optimizations::kCustomPointXIncrement = "custom_point_order_x_increment";
+const QString Constants::ProfileSettings::Optimizations::kCustomPointYIncrement = "custom_point_order_y_increment";
 
 // Ordering
 const QString Constants::ProfileSettings::Ordering::kRegionOrder = "region_order";

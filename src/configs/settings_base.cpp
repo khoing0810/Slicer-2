@@ -1,5 +1,6 @@
 #include "configs/settings_base.h"
 
+#include "geometry/point.h"
 #include "utilities/enums.h"
 
 namespace ORNL {
@@ -100,32 +101,40 @@ void SettingsBase::makeLocalAdjustments(int layer_number) {
             setSetting(PS::Ordering::kInsetReverseDirection, (int)PrintDirection::kReverse_All_Layers);
     }
 
-    // alternating seam adjustment
-    PointOrderOptimization pointOrder =
+    PointOrderOptimization point_order =
         static_cast<PointOrderOptimization>(setting<int>(PS::Optimizations::kPointOrder));
-    if (pointOrder == PointOrderOptimization::kCustomPoint &&
-        setting<bool>(PS::Optimizations::kEnableSecondCustomLocation) &&
-        setting<bool>(PS::Optimizations::kEnableSecondCustomLocationEveryTwo)) {
-        if (layer_number % 4 == 0) {
-            setSetting(PS::Optimizations::kCustomPointXLocation,
-                       (double)setting<double>(PS::Optimizations::kCustomPointSecondXLocation));
-            setSetting(PS::Optimizations::kCustomPointYLocation,
-                       (double)setting<double>(PS::Optimizations::kCustomPointSecondYLocation));
+
+    // alternating seam adjustment
+    if (point_order == PointOrderOptimization::kCustomPoint) {
+        Point p1(setting<double>(PS::Optimizations::kCustomPointXLocation),
+                 setting<double>(PS::Optimizations::kCustomPointYLocation));
+        Point p2(setting<double>(PS::Optimizations::kCustomPointSecondXLocation),
+                 setting<double>(PS::Optimizations::kCustomPointSecondYLocation));
+        double dx = setting<double>(PS::Optimizations::kCustomPointXIncrement);
+        double dy = setting<double>(PS::Optimizations::kCustomPointYIncrement);
+
+        bool enable_second = setting<bool>(PS::Optimizations::kEnableSecondCustomLocation);
+        bool enable_second_every_two = setting<bool>(PS::Optimizations::kEnableSecondCustomLocationEveryTwo);
+
+        if (enable_second && enable_second_every_two) {
+            if (layer_number % 3 == 0 || layer_number % 4 == 0) {
+                setSetting(PS::Optimizations::kCustomPointXLocation, p2.x());
+                setSetting(PS::Optimizations::kCustomPointYLocation, p2.y());
+            }
         }
-        else if (layer_number % 3 == 0) {
-            setSetting(PS::Optimizations::kCustomPointXLocation,
-                       (double)setting<double>(PS::Optimizations::kCustomPointSecondXLocation));
-            setSetting(PS::Optimizations::kCustomPointYLocation,
-                       (double)setting<double>(PS::Optimizations::kCustomPointSecondYLocation));
+        else if (enable_second) {
+            if (layer_number % 2 == 0) {
+                setSetting(PS::Optimizations::kCustomPointXLocation, p2.x() + (dx * layer_number));
+                setSetting(PS::Optimizations::kCustomPointYLocation, p2.y() + (dy * layer_number));
+            }
+            else {
+                setSetting(PS::Optimizations::kCustomPointXLocation, p1.x() + (dx * layer_number));
+                setSetting(PS::Optimizations::kCustomPointYLocation, p1.y() + (dy * layer_number));
+            }
         }
-    }
-    else if (pointOrder == PointOrderOptimization::kCustomPoint &&
-             setting<bool>(PS::Optimizations::kEnableSecondCustomLocation)) {
-        if (layer_number % 2 == 0) {
-            setSetting(PS::Optimizations::kCustomPointXLocation,
-                       (double)setting<double>(PS::Optimizations::kCustomPointSecondXLocation));
-            setSetting(PS::Optimizations::kCustomPointYLocation,
-                       (double)setting<double>(PS::Optimizations::kCustomPointSecondYLocation));
+        else {
+            setSetting(PS::Optimizations::kCustomPointXLocation, p1.x() + (dx * layer_number));
+            setSetting(PS::Optimizations::kCustomPointYLocation, p1.y() + (dy * layer_number));
         }
     }
 

@@ -158,7 +158,14 @@ QString IngersollWriter::writeTravel(Point start_location, Point target_location
             rv += commentSpaceLine("TRAVEL LIFT Z");
         }
         else {
-            rv += m_G0 % writeCoordinates(lift_destination) % commentSpaceLine("TRAVEL LIFT Z");
+            if (m_sb->setting<int>(PRS::MachineSetup::kForceG1)) {
+                rv += m_G1 % m_f %
+                      QString::number(m_sb->setting<Velocity>(PRS::MachineSpeed::kZSpeed).to(m_meta.m_velocity_unit)) %
+                      writeCoordinates(lift_destination) % commentSpaceLine("TRAVEL LIFT Z");
+            }
+            else {
+                rv += m_G0 % writeCoordinates(lift_destination) % commentSpaceLine("TRAVEL LIFT Z");
+            }
             setFeedrate(m_sb->setting<Velocity>(PRS::MachineSpeed::kZSpeed));
         }
     }
@@ -183,7 +190,13 @@ QString IngersollWriter::writeTravel(Point start_location, Point target_location
         }
     }
     else {
-        rv += m_G0 % writeCoordinates(travel_destination);
+        if (m_sb->setting<int>(PRS::MachineSetup::kForceG1)) {
+            rv += m_G1 % m_f % QString::number(m_sb->setting<Velocity>(PS::Travel::kSpeed).to(m_meta.m_velocity_unit)) %
+                  writeCoordinates(travel_destination);
+        }
+        else {
+            rv += m_G0 % writeCoordinates(travel_destination);
+        }
     }
 
     rv += commentSpaceLine("TRAVEL");
@@ -204,7 +217,14 @@ QString IngersollWriter::writeTravel(Point start_location, Point target_location
             rv += commentSpaceLine("TRAVEL LOWER Z");
         }
         else {
-            rv += m_G0 % writeCoordinates(target_location) % commentSpaceLine("TRAVEL LOWER Z");
+            if (m_sb->setting<int>(PRS::MachineSetup::kForceG1)) {
+                rv += m_G1 % m_f %
+                      QString::number(m_sb->setting<Velocity>(PRS::MachineSpeed::kZSpeed).to(m_meta.m_velocity_unit)) %
+                      writeCoordinates(target_location) % commentSpaceLine("TRAVEL LOWER Z");
+            }
+            else {
+                rv += m_G0 % writeCoordinates(target_location) % commentSpaceLine("TRAVEL LOWER Z");
+            }
             setFeedrate(m_sb->setting<Velocity>(PRS::MachineSpeed::kZSpeed));
         }
     }

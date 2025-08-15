@@ -794,6 +794,8 @@ class Constants {
             static const QString kEnableSecondCustomLocationEveryTwo;
             static const QString kCustomPointSecondXLocation;
             static const QString kCustomPointSecondYLocation;
+            static const QString kCustomPointXIncrement;
+            static const QString kCustomPointYIncrement;
         };
 
         class Ordering {
