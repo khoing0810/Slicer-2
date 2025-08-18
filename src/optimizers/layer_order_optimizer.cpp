@@ -26,15 +26,13 @@ QList<QSharedPointer<GlobalLayer>> LayerOrderOptimizer::populateSteps(QSharedPoi
 
     // get the layer ordering method, and then populate the global layers accordingly
     // after global layers have been assigned, assign nozzles/tools (if necessary)
-    LayerOrdering order_method =
-        global_sb->setting<LayerOrdering>(Constants::ExperimentalSettings::PrinterConfig::kLayerOrdering);
+    LayerOrdering order_method = global_sb->setting<LayerOrdering>(ES::PrinterConfig::kLayerOrdering);
 
     if (order_method == LayerOrdering::kByHeight) {
         // Retrieve the slicing plane normal
-        QVector3D slicing_vector = {
-            global_sb->setting<float>(Constants::ProfileSettings::SlicingVector::kSlicingVectorX),
-            global_sb->setting<float>(Constants::ProfileSettings::SlicingVector::kSlicingVectorY),
-            global_sb->setting<float>(Constants::ProfileSettings::SlicingVector::kSlicingVectorZ)};
+        QVector3D slicing_vector = {global_sb->setting<float>(PS::SlicingVector::kSlicingVectorX),
+                                    global_sb->setting<float>(PS::SlicingVector::kSlicingVectorY),
+                                    global_sb->setting<float>(PS::SlicingVector::kSlicingVectorZ)};
         slicing_vector.normalize();
 
         bool steps_left = true;
@@ -66,8 +64,7 @@ QList<QSharedPointer<GlobalLayer>> LayerOrderOptimizer::populateSteps(QSharedPoi
 
                 // calculate the distance from
                 Plane layer_plane = current_step->getSlicingPlane();
-                Distance layer_height =
-                    current_step->getSb()->setting<Distance>(Constants::ProfileSettings::Layer::kLayerHeight);
+                Distance layer_height = current_step->getSb()->setting<Distance>(PS::Layer::kLayerHeight);
                 layer_plane.shiftAlongNormal(layer_height() / 2.0);
 
                 Distance layer_dist =
@@ -94,10 +91,9 @@ QList<QSharedPointer<GlobalLayer>> LayerOrderOptimizer::populateSteps(QSharedPoi
                 // get the current layer for this part
                 QSharedPointer<Step> current_step = part->getStepPair(current_layer[part_id]).printing_layer;
 
-                Distance layer_height =
-                    current_step->getSb()->setting<Distance>(Constants::ProfileSettings::Layer::kLayerHeight);
-                Distance layer_grouping_tolerance = global_sb->setting<Distance>(
-                    Constants::ExperimentalSettings::PrinterConfig::kLayerGroupingTolerance);
+                Distance layer_height = current_step->getSb()->setting<Distance>(PS::Layer::kLayerHeight);
+                Distance layer_grouping_tolerance =
+                    global_sb->setting<Distance>(ES::PrinterConfig::kLayerGroupingTolerance);
                 Plane layer_plane = current_step->getSlicingPlane();
                 layer_plane.shiftAlongNormal(layer_height() / 2.0);
 

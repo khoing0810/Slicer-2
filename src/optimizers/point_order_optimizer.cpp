@@ -1,223 +1,209 @@
-//Header
 #include "optimizers/point_order_optimizer.h"
 
-//Qt
-#include <QRandomGenerator>
+#include "QRandomGenerator"
 
-//Local
-#include <algorithms/knn.h>
+namespace ORNL {
+int PointOrderOptimizer::linkToPoint(Point current_location, Polyline polyline, uint layer_number,
+                                     PointOrderOptimization pointOptimization, bool min_dist_enabled,
+                                     Distance min_dist_threshold, Distance consecutive_dist_threshold,
+                                     bool local_randomness_enable, Distance randomness_radius) {
+    int result;
 
-namespace ORNL
-{
-    int PointOrderOptimizer::linkToPoint(Point current_location, Polyline polyline, uint layer_number, PointOrderOptimization pointOptimization,
-                                         bool min_dist_enabled, Distance min_dist_threshold, Distance consecutive_dist_threshold, bool local_randomness_enable,
-                                         Distance randomness_radius)
-    {
-        int result;
-
-        switch(pointOptimization)
-        {
-            case PointOrderOptimization::kNextClosest:
-                result = findShortestOrLongestDistance(polyline, current_location, min_dist_enabled, min_dist_threshold);
+    switch (pointOptimization) {
+        case PointOrderOptimization::kNextClosest:
+            result = findShortestOrLongestDistance(polyline, current_location, min_dist_enabled, min_dist_threshold);
             break;
-            case PointOrderOptimization::kNextFarthest:
-                result = findShortestOrLongestDistance(polyline, current_location, min_dist_enabled, min_dist_threshold, false);
+        case PointOrderOptimization::kNextFarthest:
+            result =
+                findShortestOrLongestDistance(polyline, current_location, min_dist_enabled, min_dist_threshold, false);
             break;
-            case PointOrderOptimization::kRandom:
-                result = linkToRandom(polyline);
+        case PointOrderOptimization::kRandom:
+            result = linkToRandom(polyline);
             break;
-            case PointOrderOptimization::kConsecutive:
-                result = linkToConsecutive(polyline, layer_number, consecutive_dist_threshold);
+        case PointOrderOptimization::kConsecutive:
+            result = linkToConsecutive(polyline, layer_number, consecutive_dist_threshold);
             break;
-            default:
-                result = findShortestOrLongestDistance(polyline, current_location, false, Distance(0));
+        default:
+            result = findShortestOrLongestDistance(polyline, current_location, false, Distance(0));
             break;
-        }
-
-        if(local_randomness_enable)
-            result = computePerturbation(polyline, polyline[result], randomness_radius);
-
-        return result;
     }
 
-    bool PointOrderOptimizer::findSkeletonPointOrder(Point current_location, Polyline polyline, PointOrderOptimization pointOptimization, bool min_dist_enabled, Distance min_dist_threshold)
-    {
-        bool result = false;
-        int index;
+    if (local_randomness_enable)
+        result = computePerturbation(polyline, polyline[result], randomness_radius);
 
-        switch(pointOptimization)
-        {
-            case PointOrderOptimization::kNextClosest:
-                if(findClosestEnd(polyline, current_location, min_dist_enabled, min_dist_threshold) == 0)
-                    return false;
-                else
-                    return true;
-                break;
-            case PointOrderOptimization::kNextFarthest:
-                if(findClosestEnd(polyline, current_location, min_dist_enabled, min_dist_threshold) == 0)
-                    return true;
-                else
-                    return false;
-                break;
-            case PointOrderOptimization::kRandom:
-                if(QRandomGenerator::global()->generate() % 2)
-                    result = true;
-                break;
-            case PointOrderOptimization::kCustomPoint:
-                if(findClosestEnd(polyline, current_location, min_dist_enabled, min_dist_threshold) == 0)
-                    return false;
-                else
-                    return true;
-                break;
-            default:
-                result = false;
-                break;
-        }
+    return result;
+}
 
-        return result;
-    }
+bool PointOrderOptimizer::findSkeletonPointOrder(Point current_location, Polyline polyline,
+                                                 PointOrderOptimization pointOptimization, bool min_dist_enabled,
+                                                 Distance min_dist_threshold) {
+    bool result = false;
+    int index;
 
-    int PointOrderOptimizer::findShortestOrLongestDistance(Polyline polyline, Point startPoint, bool minThresholdEnable, Distance minThreshold, bool shortest)
-    {
-        int pointIndex = -1;
-        Distance closest;
-        if(shortest)
-            closest = Distance(DBL_MAX);
-        if(minThresholdEnable)
-            closest = Distance(minThreshold);
-
-        for(int i = 0, end = polyline.size(); i < end; ++i)
-        {
-            Distance dist = polyline[i].distance(startPoint);
-            if(shortest)
-            {
-                if (dist < closest)
-                {
-                    closest = dist;
-                    pointIndex = i;
-                }
-            }
+    switch (pointOptimization) {
+        case PointOrderOptimization::kNextClosest:
+            if (findClosestEnd(polyline, current_location, min_dist_enabled, min_dist_threshold) == 0)
+                return false;
             else
-            {
-                if (dist > closest)
-                {
-                    closest = dist;
-                    pointIndex = i;
-                }
+                return true;
+            break;
+        case PointOrderOptimization::kNextFarthest:
+            if (findClosestEnd(polyline, current_location, min_dist_enabled, min_dist_threshold) == 0)
+                return true;
+            else
+                return false;
+            break;
+        case PointOrderOptimization::kRandom:
+            if (QRandomGenerator::global()->generate() % 2)
+                result = true;
+            break;
+        case PointOrderOptimization::kCustomPoint:
+            if (findClosestEnd(polyline, current_location, min_dist_enabled, min_dist_threshold) == 0)
+                return false;
+            else
+                return true;
+            break;
+        default:
+            result = false;
+            break;
+    }
+
+    return result;
+}
+
+int PointOrderOptimizer::findShortestOrLongestDistance(Polyline polyline, Point startPoint, bool minThresholdEnable,
+                                                       Distance minThreshold, bool shortest) {
+    int pointIndex = -1;
+    Distance closest;
+    if (shortest)
+        closest = Distance(DBL_MAX);
+    if (minThresholdEnable)
+        closest = Distance(minThreshold);
+
+    for (int i = 0, end = polyline.size(); i < end; ++i) {
+        Distance dist = polyline[i].distance(startPoint);
+        if (shortest) {
+            if (dist < closest) {
+                closest = dist;
+                pointIndex = i;
             }
         }
-
-        //if no candidates found it's because nothing met threshold, so find farthest point
-        if(pointIndex == -1)
-            pointIndex = findShortestOrLongestDistance(polyline, startPoint, false, Distance(0), false);
-
-        return pointIndex;
+        else {
+            if (dist > closest) {
+                closest = dist;
+                pointIndex = i;
+            }
+        }
     }
 
-    int PointOrderOptimizer::findClosestEnd(Polyline polyline, Point currentPoint, bool minThresholdEnable, Distance minThreshold)
-    {
-        // Check which end is closer. Return 0 for front and non-zero for back.
-        // Both could be closer than the minimum distance, but ultimately one has to be chosen.
-        // If the front is closer, but less than the minimum distance, use the back.
-        // If the back is closer, but less than the minimum distance, use the front.
+    // if no candidates found it's because nothing met threshold, so find farthest point
+    if (pointIndex == -1)
+        pointIndex = findShortestOrLongestDistance(polyline, startPoint, false, Distance(0), false);
 
-        if (currentPoint.distance(polyline.front()) < currentPoint.distance(polyline.back()))
-        {
-            if (minThresholdEnable && currentPoint.distance(polyline.front()) < minThreshold)
-                return polyline.size();
-            else
-                return 0;
-        }
+    return pointIndex;
+}
+
+int PointOrderOptimizer::findClosestEnd(Polyline polyline, Point currentPoint, bool minThresholdEnable,
+                                        Distance minThreshold) {
+    // Check which end is closer. Return 0 for front and non-zero for back.
+    // Both could be closer than the minimum distance, but ultimately one has to be chosen.
+    // If the front is closer, but less than the minimum distance, use the back.
+    // If the back is closer, but less than the minimum distance, use the front.
+
+    if (currentPoint.distance(polyline.front()) < currentPoint.distance(polyline.back())) {
+        if (minThresholdEnable && currentPoint.distance(polyline.front()) < minThreshold)
+            return polyline.size();
         else
-        {
-            if (minThresholdEnable && currentPoint.distance(polyline.back()) < minThreshold)
-                return 0;
-            else
-                return polyline.size();
-        }
+            return 0;
     }
-
-    int PointOrderOptimizer::linkToRandom(Polyline polyline)
-    {
-        return QRandomGenerator::global()->bounded(polyline.size());
-    }
-
-    int PointOrderOptimizer::linkToConsecutive(Polyline polyline, uint layer_number, Distance minDist)
-    {
-        int startIndex = layer_number - 2;
-        if(startIndex < 0)
-            startIndex += polyline.size();
+    else {
+        if (minThresholdEnable && currentPoint.distance(polyline.back()) < minThreshold)
+            return 0;
         else
-            startIndex %= polyline.size();
-
-        int previousIndex = startIndex;
-
-        Distance dist;
-        do
-        {
-            startIndex = (startIndex + 1) % polyline.size();
-            dist += polyline[previousIndex].distance(polyline[startIndex]);
-
-            //looped through whole polyline
-            if(startIndex == previousIndex)
-            {
-                break;
-            }
-
-        } while(dist < minDist);
-
-        return startIndex;
+            return polyline.size();
     }
+}
 
-    int PointOrderOptimizer::computePerturbation(Polyline polyline, Point current_start, Distance radius)
-    {
-        QVector<int> candidates;
+int PointOrderOptimizer::linkToRandom(Polyline polyline) {
+    return QRandomGenerator::global()->bounded(polyline.size());
+}
 
-        for(int i = 0; i < polyline.size(); ++i)
-        {
-            if(polyline[i].distance(current_start) < radius)
-                candidates.push_back(i);
+int PointOrderOptimizer::linkToConsecutive(Polyline polyline, uint layer_number, Distance minDist) {
+    int startIndex = layer_number - 2;
+    if (startIndex < 0)
+        startIndex += polyline.size();
+    else
+        startIndex %= polyline.size();
+
+    int previousIndex = startIndex;
+
+    Distance dist;
+    do {
+        startIndex = (startIndex + 1) % polyline.size();
+        dist += polyline[previousIndex].distance(polyline[startIndex]);
+
+        // looped through whole polyline
+        if (startIndex == previousIndex) {
+            break;
         }
 
-        return candidates[QRandomGenerator::global()->bounded(candidates.size())];
+    } while (dist < minDist);
+
+    return startIndex;
+}
+
+int PointOrderOptimizer::computePerturbation(Polyline polyline, Point current_start, Distance radius) {
+    QVector<int> candidates;
+
+    for (int i = 0; i < polyline.size(); ++i) {
+        if (polyline[i].distance(current_start) < radius)
+            candidates.push_back(i);
     }
 
-//    int PointOrderOptimizer::linkToPoint(Point current_location, Path path, uint layer_number, const QSharedPointer<SettingsBase>& sb)
+    return candidates[QRandomGenerator::global()->bounded(candidates.size())];
+}
+
+//    int PointOrderOptimizer::linkToPoint(Point current_location, Path path, uint layer_number, const
+//    QSharedPointer<SettingsBase>& sb)
 //    {
 //        int result;
-//        PointOrderOptimization pointOrderOptimization = static_cast<PointOrderOptimization>(sb->setting<int>(Constants::ProfileSettings::Optimizations::kPointOrder));
+//        PointOrderOptimization pointOrderOptimization =
+//        static_cast<PointOrderOptimization>(sb->setting<int>(PS::Optimizations::kPointOrder));
 
 //        switch(pointOrderOptimization)
 //        {
 //            case PointOrderOptimization::kNextClosest:
 //                result = findShortestOrLongestDistance(path, current_location,
-//                                                       sb->setting<bool>(Constants::ProfileSettings::Optimizations::kMinDistanceEnabled),
-//                                                       sb->setting<Distance>(Constants::ProfileSettings::Optimizations::kMinDistanceThreshold));
+//                                                       sb->setting<bool>(PS::Optimizations::kMinDistanceEnabled),
+//                                                       sb->setting<Distance>(PS::Optimizations::kMinDistanceThreshold));
 //            break;
 //            case PointOrderOptimization::kNextFarthest:
 //                result = findShortestOrLongestDistance(path, current_location,
-//                                                       sb->setting<bool>(Constants::ProfileSettings::Optimizations::kMinDistanceEnabled),
-//                                                       sb->setting<Distance>(Constants::ProfileSettings::Optimizations::kMinDistanceThreshold),
+//                                                       sb->setting<bool>(PS::Optimizations::kMinDistanceEnabled),
+//                                                       sb->setting<Distance>(PS::Optimizations::kMinDistanceThreshold),
 //                                                       false);
 //            break;
 //            case PointOrderOptimization::kRandom:
 //                result = linkToRandom(path);
 //            break;
 //            case PointOrderOptimization::kConsecutive:
-//                result = linkToConsecutive(path, layer_number, sb->setting<Distance>(Constants::ProfileSettings::Optimizations::kConsecutiveDistanceThreshold));
+//                result = linkToConsecutive(path, layer_number,
+//                sb->setting<Distance>(PS::Optimizations::kConsecutiveDistanceThreshold));
 //            break;
 //            default:
 //                result = findShortestOrLongestDistance(path, current_location, false, Distance(0));
 //            break;
 //        }
 
-//        if(sb->setting<bool>(Constants::ProfileSettings::Optimizations::kLocalRandomnessEnable))
-//            result = computePerturbation(path, path[result]->start(), sb->setting<Distance>(Constants::ProfileSettings::Optimizations::kLocalRandomnessRadius));
+//        if(sb->setting<bool>(PS::Optimizations::kLocalRandomnessEnable))
+//            result = computePerturbation(path, path[result]->start(),
+//            sb->setting<Distance>(PS::Optimizations::kLocalRandomnessRadius));
 
 //        return result;
 //    }
 
-//    int PointOrderOptimizer::findShortestOrLongestDistance(Path path, Point startPoint, bool minThresholdEnable, Distance minThreshold, bool shortest)
+//    int PointOrderOptimizer::findShortestOrLongestDistance(Path path, Point startPoint, bool minThresholdEnable,
+//    Distance minThreshold, bool shortest)
 //    {
 //        int pointIndex = -1;
 //        Distance closest;
@@ -301,4 +287,4 @@ namespace ORNL
 
 //        return candidates[QRandomGenerator::global()->bounded(candidates.size())];
 //    }
-}
+} // namespace ORNL

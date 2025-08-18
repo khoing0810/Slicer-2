@@ -1,10 +1,9 @@
 #include "step/global_layer.h"
 
 #include "geometry/path_modifier.h"
+#include "optimizers/island_order_optimizer.h"
 #include "step/layer/layer.h"
 #include "step/layer/scan_layer.h"
-
-#include <optimizers/island_order_optimizer.h>
 
 namespace ORNL {
 
@@ -33,26 +32,21 @@ void GlobalLayer::reorient() {
 void GlobalLayer::calculateModifiers(QSharedPointer<SettingsBase> global_sb, QVector<Point>& current_location,
                                      int layer_num) {
     // Retrieve relevant settings
-    int num_nozzles = global_sb->setting<int>(Constants::ExperimentalSettings::MultiNozzle::kNozzleCount);
+    int num_nozzles = global_sb->setting<int>(ES::MultiNozzle::kNozzleCount);
 
     for (int tool = 0; tool < num_nozzles; ++tool) {
         if (!m_island_order[tool].isEmpty()) {
             QSharedPointer<IslandBase> firstIsland = m_island_order[tool].front();
 
             // Retrieve relevant settings
-            bool perimeter_enabled =
-                firstIsland->getSb()->setting<bool>(Constants::ProfileSettings::Perimeter::kEnable);
-            bool perimeter_lead_in_enabled =
-                firstIsland->getSb()->setting<bool>(Constants::ProfileSettings::Perimeter::kEnableLeadIn);
-            bool perimeter_lead_in_first_layer_only =
-                global_sb->setting<bool>(Constants::ProfileSettings::Perimeter::kLeadInFirstLayerOnly);
+            bool perimeter_enabled = firstIsland->getSb()->setting<bool>(PS::Perimeter::kEnable);
+            bool perimeter_lead_in_enabled = firstIsland->getSb()->setting<bool>(PS::Perimeter::kEnableLeadIn);
+            bool perimeter_lead_in_first_layer_only = global_sb->setting<bool>(PS::Perimeter::kLeadInFirstLayerOnly);
 
             if (perimeter_enabled && perimeter_lead_in_enabled &&
                 (layer_num == 0 || !perimeter_lead_in_first_layer_only)) {
-                Point leadIn = Point(
-                    firstIsland->getSb()->setting<Distance>(Constants::ProfileSettings::Perimeter::kEnableLeadInX),
-                    firstIsland->getSb()->setting<Distance>(Constants::ProfileSettings::Perimeter::kEnableLeadInY),
-                    0.0);
+                Point leadIn = Point(firstIsland->getSb()->setting<Distance>(PS::Perimeter::kEnableLeadInX),
+                                     firstIsland->getSb()->setting<Distance>(PS::Perimeter::kEnableLeadInY), 0.0);
 
                 Q_ASSERT(firstIsland->getType() == IslandType::kPolymer);
                 QSharedPointer<RegionBase> firstRegion = (firstIsland->getRegions()).front();
@@ -62,7 +56,7 @@ void GlobalLayer::calculateModifiers(QSharedPointer<SettingsBase> global_sb, QVe
         }
     }
 
-    if (global_sb->setting<bool>(Constants::MaterialSettings::SpiralLift::kLayerEnable)) {
+    if (global_sb->setting<bool>(MS::SpiralLift::kLayerEnable)) {
         for (int tool = 0; tool < num_nozzles; ++tool) {
             auto lastIsland = m_island_order[tool].back();
             Q_ASSERT(lastIsland->getType() == IslandType::kPolymer);
@@ -70,14 +64,13 @@ void GlobalLayer::calculateModifiers(QSharedPointer<SettingsBase> global_sb, QVe
             QSharedPointer<RegionBase> lastRegion = regions.back();
             Path finalPath = lastRegion->getPaths().back();
 
-            if (finalPath.back()->getSb()->setting<PathModifiers>(Constants::SegmentSettings::kPathModifiers) !=
-                PathModifiers::kSpiralLift) {
-                PathModifierGenerator::GenerateSpiralLift(
-                    finalPath, global_sb->setting<Distance>(Constants::MaterialSettings::SpiralLift::kLiftRadius),
-                    global_sb->setting<Distance>(Constants::MaterialSettings::SpiralLift::kLiftHeight),
-                    global_sb->setting<int>(Constants::MaterialSettings::SpiralLift::kLiftPoints),
-                    global_sb->setting<Velocity>(Constants::MaterialSettings::SpiralLift::kLiftSpeed),
-                    global_sb->setting<bool>(Constants::PrinterSettings::MachineSetup::kSupportG3));
+            if (finalPath.back()->getSb()->setting<PathModifiers>(SS::kPathModifiers) != PathModifiers::kSpiralLift) {
+                PathModifierGenerator::GenerateSpiralLift(finalPath,
+                                                          global_sb->setting<Distance>(MS::SpiralLift::kLiftRadius),
+                                                          global_sb->setting<Distance>(MS::SpiralLift::kLiftHeight),
+                                                          global_sb->setting<int>(MS::SpiralLift::kLiftPoints),
+                                                          global_sb->setting<Velocity>(MS::SpiralLift::kLiftSpeed),
+                                                          global_sb->setting<bool>(PRS::MachineSetup::kSupportG3));
 
                 // move current location to the end of the spiral lift
                 current_location[tool] = getIslands().last()->getRegions().last()->getPaths().last().back()->end();
@@ -101,14 +94,14 @@ void GlobalLayer::connectPaths(QSharedPointer<SettingsBase> global_sb, QVector<P
 
     // all the params should be the same length
     // and that length is the number of nozzles
-    int num_nozzles = global_sb->setting<int>(Constants::ExperimentalSettings::MultiNozzle::kNozzleCount);
+    int num_nozzles = global_sb->setting<int>(ES::MultiNozzle::kNozzleCount);
     Q_ASSERT(start.size() == num_nozzles);
     Q_ASSERT(start_index.size() == num_nozzles);
     Q_ASSERT(previous_regions.size() == num_nozzles);
 
     // get the island order method from the settings
-    IslandOrderOptimization islandOrderMethod = static_cast<IslandOrderOptimization>(
-        global_sb->setting<int>(Constants::ProfileSettings::Optimizations::kIslandOrder));
+    IslandOrderOptimization islandOrderMethod =
+        static_cast<IslandOrderOptimization>(global_sb->setting<int>(PS::Optimizations::kIslandOrder));
 
     // 1) Connect paths for all the scans first.
     //    Assume all the scans go on tool #0.
@@ -134,9 +127,8 @@ void GlobalLayer::connectPaths(QSharedPointer<SettingsBase> global_sb, QVector<P
         Point start_point = start[0]; // always 0th tool for scans
         if (islandOrderMethod == IslandOrderOptimization::kCustomPoint) {
             //! \note  Calls to CustomIsland location may need to vary by nozzle/tool number
-            start_point =
-                Point(global_sb->setting<double>(Constants::ProfileSettings::Optimizations::kCustomIslandXLocation),
-                      global_sb->setting<double>(Constants::ProfileSettings::Optimizations::kCustomIslandYLocation));
+            start_point = Point(global_sb->setting<double>(PS::Optimizations::kCustomIslandXLocation),
+                                global_sb->setting<double>(PS::Optimizations::kCustomIslandYLocation));
         }
 
         // 1.1.3) Make the IOO and get the order results
@@ -189,9 +181,8 @@ void GlobalLayer::connectPaths(QSharedPointer<SettingsBase> global_sb, QVector<P
 
         // Do seam adjustment if necessary
         if (islandOrderMethod == IslandOrderOptimization::kCustomPoint) {
-            Point start_override(
-                global_sb->setting<double>(Constants::ProfileSettings::Optimizations::kCustomIslandXLocation),
-                global_sb->setting<double>(Constants::ProfileSettings::Optimizations::kCustomIslandYLocation));
+            Point start_override(global_sb->setting<double>(PS::Optimizations::kCustomIslandXLocation),
+                                 global_sb->setting<double>(PS::Optimizations::kCustomIslandYLocation));
 
             island_optimizer.setStartPoint(start_override);
         }
@@ -232,7 +223,7 @@ void GlobalLayer::connectPaths(QSharedPointer<SettingsBase> global_sb, QVector<P
         }
         else {
             // check setting, if first, get supports then actual build islands, else the opposite order
-            if (global_sb->setting<bool>(Constants::ProfileSettings::Support::kPrintFirst)) {
+            if (global_sb->setting<bool>(PS::Support::kPrintFirst)) {
                 if (islands_for_current_tool.values(static_cast<int>(IslandType::kSupport)).size() > 0)
                     ordered_islands_to_process.push_back(
                         islands_for_current_tool.values(static_cast<int>(IslandType::kSupport)));
@@ -433,6 +424,6 @@ Distance GlobalLayer::getLayerHeight() {
     //! \note assumes all co-planar layers have the same height
     QSharedPointer<Layer> first_layer = m_step_pairs.first()->printing_layer;
     Q_ASSERT(first_layer != nullptr);
-    return first_layer->getSb()->setting<Distance>(Constants::ProfileSettings::Layer::kLayerHeight);
+    return first_layer->getSb()->setting<Distance>(PS::Layer::kLayerHeight);
 }
 } // namespace ORNL

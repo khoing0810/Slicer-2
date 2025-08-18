@@ -1,5 +1,8 @@
 #include "graphics/view/part_view.h"
 
+#include "QMessageBox"
+#include "QStack"
+#include "QToolTip"
 #include "graphics/graphics_object.h"
 #include "graphics/objects/axes_object.h"
 #include "graphics/objects/cube/plane_object.h"
@@ -18,10 +21,6 @@
 #include "utilities/mathutils.h"
 #include "widgets/part_widget/model/part_meta_model.h"
 #include "widgets/part_widget/right_click_menu.h"
-
-#include <QMessageBox>
-#include <QStack>
-#include <QToolTip>
 
 namespace ORNL {
 PartView::PartView(QSharedPointer<SettingsBase> sb) {
@@ -217,8 +216,7 @@ void PartView::updatePrinterSettings(QSharedPointer<SettingsBase> sb) {
 
     m_sb = sb;
 
-    BuildVolumeType buildVolume =
-        static_cast<BuildVolumeType>(m_sb->setting<int>(Constants::PrinterSettings::Dimensions::kBuildVolumeType));
+    BuildVolumeType buildVolume = static_cast<BuildVolumeType>(m_sb->setting<int>(PRS::Dimensions::kBuildVolumeType));
 
     QSharedPointer<PrinterObject> new_printer;
 
@@ -308,7 +306,7 @@ void PartView::updateOverhangSettings(QSharedPointer<SettingsBase> sb) {
     m_sb = sb;
 
     for (auto& gop : m_part_objects) {
-        gop->setOverhangAngle(m_sb->setting<Angle>(Constants::ProfileSettings::Support::kThresholdAngle));
+        gop->setOverhangAngle(m_sb->setting<Angle>(PS::Support::kThresholdAngle));
     }
 
     this->update();
@@ -318,9 +316,9 @@ void PartView::updateSlicingSettings(QSharedPointer<SettingsBase> sb) {
     m_sb = sb;
 
     // Determine the slicing plane normal
-    QVector3D slicing_vector = {m_sb->setting<float>(Constants::ProfileSettings::SlicingVector::kSlicingVectorX),
-                                m_sb->setting<float>(Constants::ProfileSettings::SlicingVector::kSlicingVectorY),
-                                m_sb->setting<float>(Constants::ProfileSettings::SlicingVector::kSlicingVectorZ)};
+    QVector3D slicing_vector = {m_sb->setting<float>(PS::SlicingVector::kSlicingVectorX),
+                                m_sb->setting<float>(PS::SlicingVector::kSlicingVectorY),
+                                m_sb->setting<float>(PS::SlicingVector::kSlicingVectorZ)};
     slicing_vector.normalize();
 
     QQuaternion rotation = QQuaternion::fromDirection(slicing_vector, QVector3D(0, 0, 1));
@@ -336,8 +334,7 @@ void PartView::updateSlicingSettings(QSharedPointer<SettingsBase> sb) {
 }
 
 void PartView::initView() {
-    BuildVolumeType buildVolume =
-        static_cast<BuildVolumeType>(m_sb->setting<int>(Constants::PrinterSettings::Dimensions::kBuildVolumeType));
+    BuildVolumeType buildVolume = static_cast<BuildVolumeType>(m_sb->setting<int>(PRS::Dimensions::kBuildVolumeType));
 
     switch (buildVolume) {
         case ORNL::BuildVolumeType::kRectangular:
@@ -758,7 +755,7 @@ void PartView::modelAdditionUpdate(QSharedPointer<PartMetaItem> pm) {
             this->centerPart(gop);
             this->dropPart(gop);
 
-            PreferenceChoice should_shift = PM->getFileShiftPreference();
+            PreferenceChoice should_shift = PreferencesManager::getInstance()->getFileShiftPreference();
             if (should_shift == PreferenceChoice::kAsk) {
                 if (QMessageBox::question(this, "Warning",
                                           "Do you wish to shift " + gop->part()->name() +
@@ -779,7 +776,7 @@ void PartView::modelAdditionUpdate(QSharedPointer<PartMetaItem> pm) {
     pm->setGraphicsPart(gop);
 
     // Sub object visibility.
-    gop->setOverhangAngle(m_sb->setting<Angle>(Constants::ProfileSettings::Support::kThresholdAngle));
+    gop->setOverhangAngle(m_sb->setting<Angle>(PS::Support::kThresholdAngle));
     if (m_state.overhangs_shown)
         gop->showOverhang(true);
     if (m_state.planes_shown)
@@ -881,7 +878,8 @@ void PartView::modelTranformUpdate(QSharedPointer<PartMetaItem> pm) {
 
     gop->setTransformation(pm->transformation());
 
-    if (PM->getAlwaysDropParts() && !MathUtils::glEquals(gop->minimum().z(), m_printer->minimum().z())) {
+    if (PreferencesManager::getInstance()->getAlwaysDropParts() &&
+        !MathUtils::glEquals(gop->minimum().z(), m_printer->minimum().z())) {
         // Is this a z translation or not?
         if (MathUtils::glEquals(gop->translation().z() - pm->translation().z(), 0.0f)) {
             dropPart(gop);

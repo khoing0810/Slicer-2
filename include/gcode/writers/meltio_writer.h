@@ -1,7 +1,4 @@
-#ifndef MELTIO_WRITER_H
-#define MELTIO_WRITER_H
-
-//! \file ornl_writer.h
+#pragma once
 
 #include "gcode/gcode_meta.h"
 #include "gcode/writers/writer_base.h"
@@ -93,4 +90,3 @@ class MeltioWriter : public WriterBase {
 
 }; // class MeltioWriter
 } // namespace ORNL
-#endif // MELTIO_WRITER_H

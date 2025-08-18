@@ -1,20 +1,16 @@
-#ifndef GCODEADAMANTINESAVER_H
-#define GCODEADAMANTINESAVER_H
+#pragma once
 
-// Qt
-#include <QThread>
-
+#include "QThread"
 #include "gcode/gcode_meta.h"
 
-namespace ORNL
-{
+namespace ORNL {
 /*!
-     * \class GCodeAdamantineSaver
-     * \brief Threaded class that provides additional gcode processing for Adamantine input SCAN file.
-     */
+ * \class GCodeAdamantineSaver
+ * \brief Threaded class that provides additional gcode processing for Adamantine input SCAN file.
+ */
 class GCodeAdamantineSaver : public QThread {
     Q_OBJECT
-public:
+  public:
     //! \brief Constructor
     //! \param tempLocation: location of gcode file
     //! \param path: path to output
@@ -27,7 +23,7 @@ public:
     //! \brief Function that is run when start is called on this thread.
     void run() override;
 
-private:
+  private:
     //! \brief Temporary file location, output path, output filename, and text to output
     QString m_temp_location, m_path, m_filename, m_text;
 
@@ -41,6 +37,5 @@ private:
 
     Angle m_sector_width;
 
-};  // class GCodeAdamantineSaver
-}  // namespace ORNL
-#endif  // GCODEAdamantineSAVER_H
+}; // class GCodeAdamantineSaver
+} // namespace ORNL

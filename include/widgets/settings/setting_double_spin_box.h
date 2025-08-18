@@ -1,10 +1,8 @@
-#ifndef SETTING_DOUBLE_SPIN_BOX_H
-#define SETTING_DOUBLE_SPIN_BOX_H
+#pragma once
 
+#include "QDoubleSpinBox"
 #include "widgets/settings/setting_row_base.h"
 #include "widgets/settings/setting_tab.h"
-
-#include <QDoubleSpinBox>
 
 namespace ORNL {
 class SettingTab;
@@ -81,4 +79,3 @@ class SettingDoubleSpinBox : public QDoubleSpinBox, public SettingRowBase {
     bool m_warn;
 };
 } // namespace ORNL
-#endif // SETTING_DOUBLE_SPIN_BOX_H

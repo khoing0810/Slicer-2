@@ -1,14 +1,15 @@
-#if 0
-#ifndef GCODEPARSER_H
-#define GCODEPARSER_H
-#    include <QSharedPointer>
-#    include <QString>
-#    include <QVector>
-#    include <functional>
-#    include <memory>
+#pragma once
 
-#    include "gcode/gcode_command.h"
-#    include "utilities/enums.h"
+#if 0
+
+    #include "QSharedPointer"
+    #include "QString"
+    #include "QVector"
+    #include "gcode/gcode_command.h"
+    #include "utilities/enums.h"
+
+    #include <functional>
+    #include <memory>
 
 namespace ORNL
 {
@@ -160,5 +161,4 @@ namespace ORNL
     };
 }  // namespace ORNL
 
-#endif  // GCODEPARSER_H
 #endif

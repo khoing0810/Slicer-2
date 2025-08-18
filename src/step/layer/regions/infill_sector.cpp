@@ -34,28 +34,24 @@ QString InfillSector::writeGCode(QSharedPointer<WriterBase> writer) {
 void InfillSector::compute(uint layer_num, QSharedPointer<SyncManager>& sync) {
     m_paths.clear();
 
-    Point center(m_sb->setting<double>(Constants::PrinterSettings::Dimensions::kXOffset),
-                 m_sb->setting<double>(Constants::PrinterSettings::Dimensions::kYOffset));
-    InfillPatterns infillPattern =
-        static_cast<InfillPatterns>(m_sb->setting<int>(Constants::ProfileSettings::Infill::kPattern));
-    Distance lineSpacing = m_sb->setting<Distance>(Constants::ProfileSettings::Infill::kLineSpacing);
-    Distance hatchBeadWidth = m_sb->setting<Distance>(Constants::ProfileSettings::Infill::kBeadWidth);
+    Point center(m_sb->setting<double>(PRS::Dimensions::kXOffset), m_sb->setting<double>(PRS::Dimensions::kYOffset));
+    InfillPatterns infillPattern = static_cast<InfillPatterns>(m_sb->setting<int>(PS::Infill::kPattern));
+    Distance lineSpacing = m_sb->setting<Distance>(PS::Infill::kLineSpacing);
+    Distance hatchBeadWidth = m_sb->setting<Distance>(PS::Infill::kBeadWidth);
 
     // kAngle in the setting has already been updated for each layer
-    Angle infillAngle = m_sb->setting<Angle>(Constants::ProfileSettings::Infill::kAngle);
+    Angle infillAngle = m_sb->setting<Angle>(PS::Infill::kAngle);
     Point min, max;
-    bool globalPrinterArea = m_sb->setting<bool>(Constants::ProfileSettings::Infill::kBasedOnPrinter);
+    bool globalPrinterArea = m_sb->setting<bool>(PS::Infill::kBasedOnPrinter);
     if (globalPrinterArea) {
         //! Get the bounding box for the printer
-        min = Point(m_sb->setting<Distance>(Constants::PrinterSettings::Dimensions::kXMin),
-                    m_sb->setting<Distance>(Constants::PrinterSettings::Dimensions::kYMin));
-        max = Point(m_sb->setting<Distance>(Constants::PrinterSettings::Dimensions::kXMax),
-                    m_sb->setting<Distance>(Constants::PrinterSettings::Dimensions::kYMax));
+        min = Point(m_sb->setting<Distance>(PRS::Dimensions::kXMin), m_sb->setting<Distance>(PRS::Dimensions::kYMin));
+        max = Point(m_sb->setting<Distance>(PRS::Dimensions::kXMax), m_sb->setting<Distance>(PRS::Dimensions::kYMax));
     }
 
     PolygonList geometry_copy = m_geometry;
     // Adjust for overlap
-    Distance default_overlap = m_sb->setting<Distance>(Constants::ProfileSettings::Infill::kOverlap);
+    Distance default_overlap = m_sb->setting<Distance>(PS::Infill::kOverlap);
     geometry_copy = m_geometry.offset(default_overlap);
 
     switch (infillPattern) {
@@ -128,23 +124,23 @@ void InfillSector::calculateModifiers(Path& path, bool supportsG3, QVector<Path>
 }
 
 Path InfillSector::createPath(Polyline line) {
-    Distance width = m_sb->setting<Distance>(Constants::ProfileSettings::Infill::kBeadWidth);
-    Distance height = m_sb->setting<Distance>(Constants::ProfileSettings::Layer::kLayerHeight);
-    Velocity speed = m_sb->setting<Velocity>(Constants::ProfileSettings::Infill::kSpeed);
-    Acceleration acceleration = m_sb->setting<Acceleration>(Constants::PrinterSettings::Acceleration::kInfill);
-    AngularVelocity extruder_speed = m_sb->setting<AngularVelocity>(Constants::ProfileSettings::Infill::kExtruderSpeed);
+    Distance width = m_sb->setting<Distance>(PS::Infill::kBeadWidth);
+    Distance height = m_sb->setting<Distance>(PS::Layer::kLayerHeight);
+    Velocity speed = m_sb->setting<Velocity>(PS::Infill::kSpeed);
+    Acceleration acceleration = m_sb->setting<Acceleration>(PRS::Acceleration::kInfill);
+    AngularVelocity extruder_speed = m_sb->setting<AngularVelocity>(PS::Infill::kExtruderSpeed);
 
     Path newPath;
     for (int i = 0, end = line.size() - 1; i < end; ++i) {
 
         QSharedPointer<LineSegment> segment = QSharedPointer<LineSegment>::create(line[i], line[i + 1]);
 
-        segment->getSb()->setSetting(Constants::SegmentSettings::kWidth, width);
-        segment->getSb()->setSetting(Constants::SegmentSettings::kHeight, height);
-        segment->getSb()->setSetting(Constants::SegmentSettings::kSpeed, speed);
-        segment->getSb()->setSetting(Constants::SegmentSettings::kAccel, acceleration);
-        segment->getSb()->setSetting(Constants::SegmentSettings::kExtruderSpeed, extruder_speed);
-        segment->getSb()->setSetting(Constants::SegmentSettings::kRegionType, RegionType::kInfill);
+        segment->getSb()->setSetting(SS::kWidth, width);
+        segment->getSb()->setSetting(SS::kHeight, height);
+        segment->getSb()->setSetting(SS::kSpeed, speed);
+        segment->getSb()->setSetting(SS::kAccel, acceleration);
+        segment->getSb()->setSetting(SS::kExtruderSpeed, extruder_speed);
+        segment->getSb()->setSetting(SS::kRegionType, RegionType::kInfill);
 
         newPath.append(segment);
     }

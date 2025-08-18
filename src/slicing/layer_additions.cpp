@@ -15,8 +15,7 @@
 
 namespace ORNL {
 QSharedPointer<Layer> LayerAdditions::createRaft(QSharedPointer<Layer> layer) {
-    Distance raft_offset =
-        layer->getSb()->setting<Distance>(Constants::MaterialSettings::PlatformAdhesion::kRaftOffset);
+    Distance raft_offset = layer->getSb()->setting<Distance>(MS::PlatformAdhesion::kRaftOffset);
 
     // Extract island geometry from existing layer
     QVector<PolygonList> island_outlines = layer->getGeometry().splitIntoParts();
@@ -61,10 +60,8 @@ void LayerAdditions::addBrim(QSharedPointer<Layer> layer) {
 
     PolygonList geometry = layer->getGeometry();
 
-    Distance brimWidth =
-        currentLocalSettings->setting<Distance>(Constants::MaterialSettings::PlatformAdhesion::kBrimWidth);
-    Distance beadWidth =
-        currentLocalSettings->setting<Distance>(Constants::MaterialSettings::PlatformAdhesion::kBrimBeadWidth);
+    Distance brimWidth = currentLocalSettings->setting<Distance>(MS::PlatformAdhesion::kBrimWidth);
+    Distance beadWidth = currentLocalSettings->setting<Distance>(MS::PlatformAdhesion::kBrimBeadWidth);
     int m_rings = qCeil(brimWidth() / beadWidth());
 
     // set the offset as the location of the outer most loop, which is where the brim printing starts
@@ -170,7 +167,7 @@ void LayerAdditions::addLaserScan(QSharedPointer<Part> part, int layer_index, do
         island += poly;
 
         if (layer_index == 0)
-            sb->setSetting(Constants::ProfileSettings::Layer::kLayerHeight, 0.0);
+            sb->setSetting(PS::Layer::kLayerHeight, 0.0);
 
         QVector<QSharedPointer<IslandBase>> newIslands;
         newIslands.push_back(QSharedPointer<LaserScanIsland>::create(island, sb, QVector<SettingsPolygon>()));
@@ -199,10 +196,10 @@ void LayerAdditions::createWireFeedIslands(QSharedPointer<Layer> layer,
                                   [](const PolygonList& a, const PolygonList& b) { return a.max() < b.max(); });
 
     QSharedPointer<SettingsBase> base_sb = QSharedPointer<SettingsBase>::create(*next_layer_meta->settings);
-    base_sb->setSetting(Constants::ProfileSettings::Inset::kEnable, false);
-    base_sb->setSetting(Constants::ProfileSettings::Skin::kEnable, false);
-    base_sb->setSetting(Constants::ProfileSettings::Infill::kEnable, false);
-    base_sb->setSetting(Constants::ProfileSettings::Skeleton::kEnable, false);
+    base_sb->setSetting(PS::Inset::kEnable, false);
+    base_sb->setSetting(PS::Skin::kEnable, false);
+    base_sb->setSetting(PS::Infill::kEnable, false);
+    base_sb->setSetting(PS::Skeleton::kEnable, false);
 
     QSharedPointer<PolymerIsland> base_isl = QSharedPointer<PolymerIsland>::create(
         base, base_sb, next_layer_meta->settings_polygons, next_layer_meta->single_grid, next_layer_meta->geometry);
@@ -227,7 +224,7 @@ void LayerAdditions::createWireFeedIslands(QSharedPointer<Layer> layer,
 void LayerAdditions::addAnchors(QSharedPointer<Layer> layer) {
 #ifdef HAVE_WIRE_FEED
     QSharedPointer<SettingsBase> anchor_sb = QSharedPointer<SettingsBase>::create(*layer->getSb());
-    anchor_sb->setSetting(Constants::ProfileSettings::Perimeter::kCount, 1);
+    anchor_sb->setSetting(PS::Perimeter::kCount, 1);
     QSharedPointer<IslandBase> isl = layer->getIslands(IslandType::kWireFeed).first();
 
     Point starting_point(INT_MAX, INT_MAX), ending_point(INT_MIN, INT_MIN);
@@ -241,12 +238,11 @@ void LayerAdditions::addAnchors(QSharedPointer<Layer> layer) {
         }
     }
     WireFeed::AnchorInfo ai = WireFeed::WireFeed::generateAnchors(
-        anchor_sb->setting<double>(Constants::ExperimentalSettings::WireFeed::kAnchorObjectDistanceLeft),
-        anchor_sb->setting<double>(Constants::ExperimentalSettings::WireFeed::kAnchorObjectDistanceRight),
-        anchor_sb->setting<double>(Constants::ProfileSettings::Perimeter::kBeadWidth) / 2.0,
-        anchor_sb->setting<double>(Constants::ExperimentalSettings::WireFeed::kAnchorWidth),
-        anchor_sb->setting<double>(Constants::ExperimentalSettings::WireFeed::kAnchorHeight), starting_point.x(),
-        starting_point.y(), ending_point.x(), ending_point.y());
+        anchor_sb->setting<double>(ES::WireFeed::kAnchorObjectDistanceLeft),
+        anchor_sb->setting<double>(ES::WireFeed::kAnchorObjectDistanceRight),
+        anchor_sb->setting<double>(PS::Perimeter::kBeadWidth) / 2.0,
+        anchor_sb->setting<double>(ES::WireFeed::kAnchorWidth), anchor_sb->setting<double>(ES::WireFeed::kAnchorHeight),
+        starting_point.x(), starting_point.y(), ending_point.x(), ending_point.y());
 
     for (QVector<QPair<double, double>> anchor : ai.anchors) {
         Polygon poly(anchor);

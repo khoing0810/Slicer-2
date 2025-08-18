@@ -1,11 +1,10 @@
 #include "widgets/gcodebar.h"
 
+#include "QDir"
+#include "QPushButton"
+#include "QStandardPaths"
+#include "QTextDocumentWriter"
 #include "managers/preferences_manager.h"
-
-#include <QDir>
-#include <QPushButton>
-#include <QStandardPaths>
-#include <QTextDocumentWriter>
 
 namespace ORNL {
 GcodeBar::GcodeBar(QWidget* parent) : QWidget(parent) {
@@ -240,6 +239,7 @@ void GcodeBar::setupWidget() {
 }
 
 void GcodeBar::setupSubWidgets() {
+
     // Search Separator
     m_search_separator = new QFrame(this);
     m_search_separator->setFrameShape(QFrame::HLine);
@@ -270,17 +270,17 @@ void GcodeBar::setupSubWidgets() {
     // Hide Travel CheckBox
     m_hide_travel = new QCheckBox(this);
     m_hide_travel->setText("Hide Travel");
-    m_hide_travel->setChecked(PM->getHideTravelPreference());
+    m_hide_travel->setChecked(PreferencesManager::getInstance()->getHideTravelPreference());
 
     // Hide Support CheckBox
     m_hide_support = new QCheckBox(this);
     m_hide_support->setText("Hide Support");
-    m_hide_support->setChecked(PM->getHideSupportPreference());
+    m_hide_support->setChecked(PreferencesManager::getInstance()->getHideSupportPreference());
 
     // True Bead Widths CheckBox
     m_true_width = new QCheckBox(this);
     m_true_width->setText("True Bead Widths");
-    m_true_width->setChecked(PM->getUseTrueWidthsPreference());
+    m_true_width->setChecked(PreferencesManager::getInstance()->getUseTrueWidthsPreference());
 
     // Lower Layer Spinbox
     m_layer_lower = new QSpinBox(this);
@@ -405,17 +405,17 @@ void GcodeBar::setupEvents() {
 
     connect(m_hide_travel, &QCheckBox::clicked, [this] {
         emit forwardVisibilityChange(SegmentDisplayType::kTravel, m_hide_travel->isChecked());
-        PM->setHideTravelPreference(m_hide_travel->isChecked());
+        PreferencesManager::getInstance()->setHideTravelPreference(m_hide_travel->isChecked());
     });
 
     connect(m_hide_support, &QCheckBox::clicked, [this] {
         emit forwardVisibilityChange(SegmentDisplayType::kSupport, m_hide_support->isChecked());
-        PM->setHideSupportPreference(m_hide_support->isChecked());
+        PreferencesManager::getInstance()->setHideSupportPreference(m_hide_support->isChecked());
     });
 
     connect(m_true_width, &QCheckBox::clicked, [this] {
         emit forwardSegmentWidthChange(m_true_width->isChecked());
-        PM->setUseTrueWidthsPreference(m_true_width->isChecked());
+        PreferencesManager::getInstance()->setUseTrueWidthsPreference(m_true_width->isChecked());
     });
 
     connect(m_lock_layer, &QCheckBox::clicked, [this] {
@@ -472,7 +472,7 @@ void GcodeBar::updatePlayButton() {
     }
     else {
         // Delay between drawing layers in milliseconds
-        int draw_time = PM->getLayerLag();
+        int draw_time = PreferencesManager::getInstance()->getLayerLag();
         m_layer_timer->start(draw_time);
 
         m_layer_play_btn->setIcon(QIcon(":/icons/stop.png"));
@@ -499,7 +499,7 @@ void GcodeBar::updateSegmentPlayButton() {
             m_hide_support->click();
 
         // Delay between drawing segments in milliseconds
-        int draw_time = PM->getSegmentLag();
+        int draw_time = PreferencesManager::getInstance()->getSegmentLag();
         m_segment_timer->start(draw_time);
 
         m_segment_play_btn->setIcon(QIcon(":/icons/stop.png"));

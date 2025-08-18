@@ -1,19 +1,14 @@
-#ifndef POLYGON_H
-#define POLYGON_H
+#pragma once
 
-// Libraries
 #include "clipper.hpp"
+#include "geometry/path.h"
+#include "geometry/point.h"
+#include "geometry/polyline.h"
 
-// Single Path Lib
 #ifdef HAVE_SINGLE_PATH
     #include "single_path/geometry/point.h"
     #include "single_path/geometry/polygon.h"
 #endif
-
-// Local
-#include "geometry/path.h"
-#include "geometry/point.h"
-#include "units/derivative_units.h"
 
 namespace ORNL {
 class PolygonList;
@@ -124,6 +119,12 @@ class Polygon : public QVector<Point> {
     //! \return Polyline that represents the underlying polygon
     Polyline toPolyline();
 
+    /**
+     * @brief Returns the edges of the polygon as a vector of polylines.
+     * @return Vector of Polylines representing the edges of the polygon.
+     */
+    QVector<Polyline> getEdges() const;
+
     /*!
      * \brief Add an instance of Polygon to this Polygon to make Polygons.
      *        Any overlapping Polygon are merged into one.
@@ -198,4 +199,3 @@ class Polygon : public QVector<Point> {
 
 }; // Class Polygon
 } // namespace ORNL
-#endif // POLYGON_H

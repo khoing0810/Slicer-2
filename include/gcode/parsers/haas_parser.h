@@ -1,9 +1,10 @@
-//Haas dedicated parser currently unnecessary as its only current handlers are M3/M5
-//M3/M5 has been moved to the common parser as all current syntaxes utilize same format
+#pragma once
+
+// Haas dedicated parser currently unnecessary as its only current handlers are M3/M5
+// M3/M5 has been moved to the common parser as all current syntaxes utilize same format
 #if 0
-#ifndef HAAS_PARSER_H
-#define HAAS_PARSER_H
-#include "common_parser.h"
+
+    #include "common_parser.h"
 
 namespace ORNL
 {
@@ -43,5 +44,4 @@ namespace ORNL
   };
 }
 
-#endif // HAAS_PARSER_H
 #endif

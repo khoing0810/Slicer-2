@@ -234,7 +234,9 @@ const QString Constants::PathModifierStrings::kPerimeterTipWipe = "PERIMETER TIP
 // Machine Setup
 const QString Constants::PrinterSettings::MachineSetup::kSyntax = "syntax";
 const QString Constants::PrinterSettings::MachineSetup::kMachineType = "machine_type";
+const QString Constants::PrinterSettings::MachineSetup::kForceG1 = "force_G1";
 const QString Constants::PrinterSettings::MachineSetup::kSupportG3 = "supports_G2_3";
+const QString Constants::PrinterSettings::MachineSetup::kToolNumber = "tool_number";
 const QString Constants::PrinterSettings::MachineSetup::kAxisA = "axis_a";
 const QString Constants::PrinterSettings::MachineSetup::kAxisB = "axis_b";
 const QString Constants::PrinterSettings::MachineSetup::kAxisC = "axis_c";
@@ -304,6 +306,7 @@ const QString Constants::PrinterSettings::GCode::kEnableStartupCode = "enable_de
 const QString Constants::PrinterSettings::GCode::kEnableMaterialLoad = "enable_material_load";
 const QString Constants::PrinterSettings::GCode::kEnableWaitForUser = "enable_wait_for_user";
 const QString Constants::PrinterSettings::GCode::kEnableBoundingBox = "enable_bounding_box";
+const QString Constants::PrinterSettings::GCode::kEnableSettingsFooter = "enable_settings_footer";
 const QString Constants::PrinterSettings::GCode::kStartCode = "start_code";
 const QString Constants::PrinterSettings::GCode::kLayerCodeChange = "layer_change_code";
 const QString Constants::PrinterSettings::GCode::kEndCode = "end_code";
@@ -531,9 +534,10 @@ const QString Constants::MaterialSettings::PlatformAdhesion::kSkirtBeadWidth = "
 
 // MultiMaterial
 const QString Constants::MaterialSettings::MultiMaterial::kEnable = "enable_multi_material";
-const QString Constants::MaterialSettings::MultiMaterial::kPerimterNum = "perimeter_material_num";
+const QString Constants::MaterialSettings::MultiMaterial::kPerimeterNum = "perimeter_material_num";
 const QString Constants::MaterialSettings::MultiMaterial::kInsetNum = "inset_material_num";
 const QString Constants::MaterialSettings::MultiMaterial::kSkinNum = "skin_material_num";
+const QString Constants::MaterialSettings::MultiMaterial::kSkeletonNum = "skeleton_material_num";
 const QString Constants::MaterialSettings::MultiMaterial::kInfillNum = "infill_material_num";
 const QString Constants::MaterialSettings::MultiMaterial::kTransitionDistance = "material_transition_distance";
 const QString Constants::MaterialSettings::MultiMaterial::kEnableSecondDistance = "enable_second_transition_distance";
@@ -631,7 +635,6 @@ const QString Constants::ProfileSettings::Infill::kLineSpacing = "infill_line_sp
 const QString Constants::ProfileSettings::Infill::kDensity = "infill_density";
 const QString Constants::ProfileSettings::Infill::kManualLineSpacing = "infill_manual_spacing";
 const QString Constants::ProfileSettings::Infill::kPattern = "infill_pattern";
-const QString Constants::ProfileSettings::Infill::kPrintInfillEveryXLayers = "infill_every_x_layers";
 const QString Constants::ProfileSettings::Infill::kBasedOnPrinter = "infill_based_on_printer";
 const QString Constants::ProfileSettings::Infill::kAngle = "infill_angle";
 const QString Constants::ProfileSettings::Infill::kAngleRotation = "infill_angle_rotation";
@@ -641,6 +644,7 @@ const QString Constants::ProfileSettings::Infill::kSpeed = "infill_speed";
 const QString Constants::ProfileSettings::Infill::kExtruderSpeed = "infill_extruder_speed";
 const QString Constants::ProfileSettings::Infill::kExtrusionMultiplier = "infill_extrusion_multiplier";
 const QString Constants::ProfileSettings::Infill::kCombineXLayers = "infill_combine_every_x_layers";
+const QString Constants::ProfileSettings::Infill::kCombineLayerShift = "infill_combine_layer_shift";
 const QString Constants::ProfileSettings::Infill::kMinPathLength = "infill_minimum_path_length";
 const QString Constants::ProfileSettings::Infill::kPrestart = "infill_prestart";
 const QString Constants::ProfileSettings::Infill::kPrestartDistance = "infill_prestart_distance";
@@ -669,6 +673,9 @@ const QString Constants::ProfileSettings::Travel::kSpeed = "travel_speed";
 const QString Constants::ProfileSettings::Travel::kMinLength = "minimum_travel_length";
 const QString Constants::ProfileSettings::Travel::kMinTravelForLift = "minimum_travel_for_lift";
 const QString Constants::ProfileSettings::Travel::kLiftHeight = "travel_lift_height";
+const QString Constants::ProfileSettings::Travel::kEnableTravelPause = "enable_travel_pause";
+const QString Constants::ProfileSettings::Travel::kEnableTravelCentroidMove = "travel_centroid_move";
+const QString Constants::ProfileSettings::Travel::kTravelPauseDuration = "travel_pause_duration";
 
 // G-Code
 const QString Constants::ProfileSettings::GCode::kPerimeterStart = "perimeter_start_code";
@@ -694,7 +701,6 @@ const QString Constants::ProfileSettings::SpecialModes::kOversizeDistance = "ove
 const QString Constants::ProfileSettings::SpecialModes::kEnableWidthHeight = "enable_width_height";
 
 // Optimizations
-const QString Constants::ProfileSettings::Optimizations::kEnableGPU = "enable_gpu_acceleration";
 const QString Constants::ProfileSettings::Optimizations::kIslandOrder = "island_order_optimization";
 const QString Constants::ProfileSettings::Optimizations::kPathOrder = "path_order_optimization";
 const QString Constants::ProfileSettings::Optimizations::kCustomIslandXLocation = "custom_island_order_x_location";
@@ -712,10 +718,14 @@ const QString Constants::ProfileSettings::Optimizations::kCustomPointXLocation =
 const QString Constants::ProfileSettings::Optimizations::kCustomPointYLocation = "custom_point_order_y_location";
 const QString Constants::ProfileSettings::Optimizations::kEnableSecondCustomLocation =
     "enable_second_custom_point_location";
+const QString Constants::ProfileSettings::Optimizations::kEnableSecondCustomLocationEveryTwo =
+    "enable_second_point_every_two";
 const QString Constants::ProfileSettings::Optimizations::kCustomPointSecondXLocation =
     "custom_second_point_order_x_location";
 const QString Constants::ProfileSettings::Optimizations::kCustomPointSecondYLocation =
     "custom_second_point_order_y_location";
+const QString Constants::ProfileSettings::Optimizations::kCustomPointXIncrement = "custom_point_order_x_increment";
+const QString Constants::ProfileSettings::Optimizations::kCustomPointYIncrement = "custom_point_order_y_increment";
 
 // Ordering
 const QString Constants::ProfileSettings::Ordering::kRegionOrder = "region_order";
@@ -843,6 +853,7 @@ const QString Constants::ExperimentalSettings::FileOutput::kAML3DWeaveLength = "
 const QString Constants::ExperimentalSettings::FileOutput::kAML3DWeaveWidth = "aml3d_weave_width";
 const QString Constants::ExperimentalSettings::FileOutput::kSandiaOutput = "sandia_file_output";
 const QString Constants::ExperimentalSettings::FileOutput::kSandiaMetalFile = "sandia_metal_file";
+const QString Constants::ExperimentalSettings::FileOutput::kSandiaCVEL = "sandia_cvel";
 const QString Constants::ExperimentalSettings::FileOutput::kMarlinOutput = "marlin_file_output";
 const QString Constants::ExperimentalSettings::FileOutput::kMarlinTravels = "marlin_include_travels";
 const QString Constants::ExperimentalSettings::FileOutput::kSimulationOutput = "simulation_file_output";
@@ -925,6 +936,7 @@ const QString Constants::SegmentSettings::kIsRegionStartSegment = "is_region_sta
 const QString Constants::SegmentSettings::kWireFeed = "wire_feed";
 const QString Constants::SegmentSettings::kFinalWireCoast = "final_wire_coast";
 const QString Constants::SegmentSettings::kFinalWireFeed = "final_wire_feed";
+const QString Constants::SegmentSettings::kAdapted = "adapted";
 
 //================================================================================
 // Limits

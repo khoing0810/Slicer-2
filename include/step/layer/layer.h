@@ -1,10 +1,6 @@
-#ifndef LAYER_H
-#define LAYER_H
+#pragma once
 
-// Qt
-#include <QLinkedList>
-
-// Local
+#include "QLinkedList"
 #include "geometry/polygon_list.h"
 #include "geometry/settings_polygon.h"
 #include "step/layer/regions/region_base.h"
@@ -98,5 +94,3 @@ class Layer : public Step {
     QVector<SettingsPolygon> m_settings_polygons;
 };
 } // namespace ORNL
-
-#endif // LAYER_H

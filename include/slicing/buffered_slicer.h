@@ -1,12 +1,9 @@
-#ifndef SLICER_H
-#define SLICER_H
+#pragma once
 
-// Local
-#include "configs/range.h"
+#include "configs/settings_range.h"
 #include "geometry/mesh/advanced/mesh_skeleton.h"
 #include "geometry/mesh/mesh_base.h"
 #include "part/part.h"
-#include "step/step.h"
 
 namespace ORNL {
 //! \class BufferedSlicer
@@ -130,5 +127,3 @@ class BufferedSlicer {
     QSharedPointer<ClosedMesh> m_settings_bounded_mesh, m_settings_remaining_build_mesh;
 };
 } // namespace ORNL
-
-#endif

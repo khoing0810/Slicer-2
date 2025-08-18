@@ -1,6 +1,5 @@
 #include "slicing/slicing_utilities.h"
 
-// Locals
 #include "cross_section/cross_section.h"
 
 namespace ORNL {
@@ -54,9 +53,9 @@ std::tuple<Plane, Point, Point> SlicingUtilities::GetDefaultSlicingAxis(QSharedP
                                                                         QSharedPointer<MeshBase> mesh,
                                                                         QSharedPointer<MeshSkeleton> skeleton) {
     // Retrieve the slicing plane normal
-    QVector3D slicing_vector = {sb->setting<float>(Constants::ProfileSettings::SlicingVector::kSlicingVectorX),
-                                sb->setting<float>(Constants::ProfileSettings::SlicingVector::kSlicingVectorY),
-                                sb->setting<float>(Constants::ProfileSettings::SlicingVector::kSlicingVectorZ)};
+    QVector3D slicing_vector = {sb->setting<float>(PS::SlicingVector::kSlicingVectorX),
+                                sb->setting<float>(PS::SlicingVector::kSlicingVectorY),
+                                sb->setting<float>(PS::SlicingVector::kSlicingVectorZ)};
     slicing_vector.normalize();
 
     // Retrieve the mesh extrema along the slicing plane normal
@@ -71,7 +70,7 @@ std::tuple<Plane, Point, Point> SlicingUtilities::GetDefaultSlicingAxis(QSharedP
 void SlicingUtilities::ShiftSlicingPlane(QSharedPointer<SettingsBase> sb, Plane& slicing_plane, Distance last_height,
                                          QSharedPointer<MeshSkeleton> skeleton) {
     // Retrieve the layer height
-    const Distance& layer_height = sb->setting<Distance>(Constants::ProfileSettings::Layer::kLayerHeight);
+    const Distance& layer_height = sb->setting<Distance>(PS::Layer::kLayerHeight);
 
     // Shift the slicing plane along the normal by half the layer height
     slicing_plane.shiftAlongNormal((layer_height() / 2.) + (last_height() / 2.));

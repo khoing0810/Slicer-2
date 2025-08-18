@@ -1,10 +1,8 @@
-#ifndef SETTING_COMBO_BOX_H
-#define SETTING_COMBO_BOX_H
+#pragma once
 
+#include "QComboBox"
 #include "widgets/settings/setting_row_base.h"
 #include "widgets/settings/setting_tab.h"
-
-#include <QComboBox>
 
 namespace ORNL {
 class SettingTab;
@@ -83,4 +81,3 @@ class SettingComboBox : public QComboBox, public SettingRowBase {
     int m_prev;
 };
 } // namespace ORNL
-#endif // SETTING_COMBO_BOX_H

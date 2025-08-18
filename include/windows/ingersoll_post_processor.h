@@ -1,13 +1,13 @@
-#if 0
-#ifndef INGERSOLLPOSTPROCESSOR_H
-#define INGERSOLLPOSTPROCESSOR_H
+#pragma once
 
-#include <QWidget>
-#include <QGridLayout>
-#include <QLabel>
-#include <QIcon>
-#include <QPushButton>
-#include <QStatusBar>
+#if 0
+
+    #include "QGridLayout"
+    #include "QIcon"
+    #include "QLabel"
+    #include "QPushButton"
+    #include "QStatusBar"
+    #include "QWidget"
 
 namespace ORNL
 {
@@ -45,5 +45,4 @@ namespace ORNL
     };
 }
 
-#endif // INGERSOLLPOSTPROCESSOR_H
 #endif

@@ -1,13 +1,12 @@
 #if 0
-#include "gcode/parsers/skybaam_parser.h"
+    #include "gcode/parsers/skybaam_parser.h"
 
-#include <QString>
-#include <QStringList>
-#include <QVector>
-#include <QTextStream>
-
-#include "exceptions/exceptions.h"
-#include "units/unit.h"
+    #include "QString"
+    #include "QStringList"
+    #include "QTextStream"
+    #include "QVector"
+    #include "exceptions/exceptions.h"
+    #include "units/unit.h"
 
 namespace ORNL
 {
@@ -41,7 +40,6 @@ namespace ORNL
 
         setLineCommentString("");
         setBlockCommentDelimiters("(", ")");
-        //setDistanceConversion(inch);
     }
 
     void SkyBaamParser::M3Handler(QStringList& params)

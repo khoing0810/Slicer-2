@@ -1,8 +1,16 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
 
+#include "QApplication"
+#include "QDesktopServices"
+#include "QDockWidget"
+#include "QFile"
+#include "QLabel"
+#include "QMainWindow"
+#include "QMenuBar"
+#include "QTextEdit"
+#include "QToolBar"
+#include "QUdpSocket"
 #include "dialogs/slice_dialog.h"
-#include "gcode/gcode_parser.h"
 #include "widgets/cmd_widget.h"
 #include "widgets/gcode_widget.h"
 #include "widgets/gcodebar.h"
@@ -14,21 +22,9 @@
 #include "windows/external_file_window.h"
 #include "windows/flowratecalc.h"
 #include "windows/gcode_export.h"
-#include "windows/ingersoll_post_processor.h"
 #include "windows/layer_times_window.h"
 #include "windows/preferences_window.h"
 #include "windows/xtrudecalc.h"
-
-#include <QApplication>
-#include <QDesktopServices>
-#include <QDockWidget>
-#include <QFile>
-#include <QLabel>
-#include <QMainWindow>
-#include <QMenuBar>
-#include <QTextEdit>
-#include <QToolBar>
-#include <QUdpSocket>
 
 namespace ORNL {
 
@@ -331,5 +327,3 @@ class MainWindow : public QMainWindow {
     void closeEvent(QCloseEvent* event);
 };
 } // namespace ORNL
-
-#endif // MAINWINDOW_H

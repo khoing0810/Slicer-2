@@ -1,7 +1,5 @@
-#ifndef LASERSCAN_H
-#define LASERSCAN_H
+#pragma once
 
-// Local
 #include "step/layer/regions/region_base.h"
 
 namespace ORNL {
@@ -44,5 +42,3 @@ class LaserScan : public RegionBase {
     QVector<Polyline> m_computed_geometry;
 };
 } // namespace ORNL
-
-#endif // LASERSCAN_H

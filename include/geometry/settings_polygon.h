@@ -1,42 +1,41 @@
-#ifndef SETTINGS_POLYGON_H
-#define SETTINGS_POLYGON_H
+#pragma once
 
-// Locals
-#include "geometry/polygon_list.h"
-#include "geometry/plane.h"
 #include "configs/settings_base.h"
+#include "geometry/polygon_list.h"
 
-namespace ORNL
-{
-    /*!
-     * \class SettingsPolygon
-     * \brief is a polygon that contains a settings. It is a cross-section of a settings mesh with part range info
+namespace ORNL {
+/*!
+ * \class SettingsPolygon
+ * \brief is a polygon that contains a settings. It is a cross-section of a settings mesh with part range info
+ */
+class SettingsPolygon : public PolygonList {
+  public:
+    //! \brief Constructor
+    SettingsPolygon() = default;
+
+    //! \brief Constructor to cross section a setting's part with a given plane and save it's SettingsBase
+    //! \param geometery: cross-section of the settings mesh
+    //! \param sb: the settings
+    SettingsPolygon(QVector<Polygon> geometry, QSharedPointer<SettingsBase>& sb);
+
+    //! \brief clips a line with this polygon
+    //! \param start: the start of the line
+    //! \param end: the end of the line
+    //! \return a list of points were the line intersected the polygon
+    QVector<Point> clipLine(Point start, Point end) const;
+
+    //! \brief gets the settings base
+    //! \return a pointer to the settings
+    QSharedPointer<SettingsBase> getSettings();
+
+    /**
+     * @brief Gets the settings base for this polygon.
+     * @return A shared pointer to the settings base.
      */
-    class SettingsPolygon : public PolygonList
-    {
-        public:
-            //! \brief Constructor
-            SettingsPolygon() = default;
+    QSharedPointer<SettingsBase> getSettings() const;
 
-            //! \brief Constructor to cross section a setting's part with a given plane and save it's SettingsBase
-            //! \param geometery: cross-section of the settings mesh
-            //! \param sb: the settings
-            SettingsPolygon(QVector<Polygon> geometry, QSharedPointer<SettingsBase>& sb);
-
-            //! \brief clips a line with this polygon
-            //! \param start: the start of the line
-            //! \param end: the end of the line
-            //! \return a list of points were the line intersected the polygon
-            QVector<Point> clipLine(Point start, Point end);
-
-            //! \brief gets the settings base
-            //! \return a pointer to the settings
-            QSharedPointer<SettingsBase> getSettings();
-
-        private:
-            //! \brief the settings
-            QSharedPointer<SettingsBase> m_sb;
-    };
-}
-
-#endif // SETTINGS_POLYGON_H
+  private:
+    //! \brief the settings
+    QSharedPointer<SettingsBase> m_sb;
+};
+} // namespace ORNL

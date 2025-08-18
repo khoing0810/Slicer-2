@@ -1,14 +1,11 @@
-#ifndef CONSTANTS_H
-#define CONSTANTS_H
+#pragma once
 
-//! \file constants.h
-
+#include "QColor"
+#include "QHash"
+#include "QVector"
+#include "QVector3D"
 #include "units/unit.h"
 
-#include <QColor>
-#include <QHash>
-#include <QVector3D>
-#include <QVector>
 #include <string>
 
 namespace ORNL {
@@ -177,7 +174,9 @@ class Constants {
           public:
             static const QString kSyntax;
             static const QString kMachineType;
+            static const QString kForceG1;
             static const QString kSupportG3;
+            static const QString kToolNumber;
             static const QString kAxisA;
             static const QString kAxisB;
             static const QString kAxisC;
@@ -263,6 +262,7 @@ class Constants {
             static const QString kEnableMaterialLoad;
             static const QString kEnableWaitForUser;
             static const QString kEnableBoundingBox;
+            static const QString kEnableSettingsFooter;
             static const QString kStartCode;
             static const QString kLayerCodeChange;
             static const QString kEndCode;
@@ -581,8 +581,9 @@ class Constants {
         class MultiMaterial {
           public:
             static const QString kEnable;
-            static const QString kPerimterNum;
+            static const QString kPerimeterNum;
             static const QString kInsetNum;
+            static const QString kSkeletonNum;
             static const QString kSkinNum;
             static const QString kInfillNum;
             static const QString kTransitionDistance;
@@ -698,7 +699,6 @@ class Constants {
             static const QString kDensity;
             static const QString kManualLineSpacing;
             static const QString kPattern;
-            static const QString kPrintInfillEveryXLayers;
             static const QString kBasedOnPrinter;
             static const QString kAngle;
             static const QString kAngleRotation;
@@ -708,6 +708,7 @@ class Constants {
             static const QString kExtruderSpeed;
             static const QString kExtrusionMultiplier;
             static const QString kCombineXLayers;
+            static const QString kCombineLayerShift;
             static const QString kMinPathLength;
             static const QString kPrestart;
             static const QString kPrestartDistance;
@@ -740,6 +741,9 @@ class Constants {
             static const QString kMinLength;
             static const QString kMinTravelForLift;
             static const QString kLiftHeight;
+            static const QString kEnableTravelPause;
+            static const QString kEnableTravelCentroidMove;
+            static const QString kTravelPauseDuration;
         };
 
         class GCode {
@@ -772,7 +776,6 @@ class Constants {
 
         class Optimizations {
           public:
-            static const QString kEnableGPU;
             static const QString kIslandOrder;
             static const QString kPathOrder;
             static const QString kCustomIslandXLocation;
@@ -788,8 +791,11 @@ class Constants {
             static const QString kCustomPointXLocation;
             static const QString kCustomPointYLocation;
             static const QString kEnableSecondCustomLocation;
+            static const QString kEnableSecondCustomLocationEveryTwo;
             static const QString kCustomPointSecondXLocation;
             static const QString kCustomPointSecondYLocation;
+            static const QString kCustomPointXIncrement;
+            static const QString kCustomPointYIncrement;
         };
 
         class Ordering {
@@ -931,6 +937,7 @@ class Constants {
             static const QString kAML3DWeaveWidth;
             static const QString kSandiaOutput;
             static const QString kSandiaMetalFile;
+            static const QString kSandiaCVEL;
             static const QString kMarlinOutput;
             static const QString kMarlinTravels;
             static const QString kSimulationOutput;
@@ -1037,6 +1044,7 @@ class Constants {
         static const QString kWireFeed;
         static const QString kFinalWireCoast;
         static const QString kFinalWireFeed;
+        static const QString kAdapted;
     };
 
     class Limits {
@@ -1304,5 +1312,12 @@ class Constants {
         static const QString kVersion;
     };
 };
+
+// Type aliases for easier reading
+using ES = Constants::ExperimentalSettings;
+using MS = Constants::MaterialSettings;
+using PS = Constants::ProfileSettings;
+using PRS = Constants::PrinterSettings;
+using SS = Constants::SegmentSettings;
+
 } // namespace ORNL
-#endif // CONSTANTS_H

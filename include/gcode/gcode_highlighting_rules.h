@@ -1,10 +1,9 @@
-#if 0
-#ifndef GCODE_HIGHLIGHTING_RULES_H
-#define GCODE_HIGHLIGHTING_RULES_H
+#pragma once
 
-// Qt
-#include <QRegularExpression>
-#include <QTextCharFormat>
+#if 0
+
+    #include "QRegularExpression"
+    #include "QTextCharFormat"
 
 namespace ORNL
 {
@@ -124,5 +123,5 @@ namespace ORNL
 
 
 }
-#endif // GCODE_HIGHLIGHTING_RULES_H
+
 #endif

@@ -1,27 +1,22 @@
-#ifndef FIVE_AXIS_MARLIN_WRITER_H
-#define FIVE_AXIS_MARLIN_WRITER_H
+#pragma once
 
-//! \file marlin_writer.h
-
+#include "gcode/gcode_meta.h"
 #include "gcode/writers/writer_base.h"
 #include "managers/settings/settings_manager.h"
-#include "gcode/gcode_meta.h"
 
-namespace ORNL
-{
+namespace ORNL {
 /*!
-     * \class FiveAxisMarlinWriter
-     * \brief The gcode writer for the Marlin syntax with five axes.
-     */
-class FiveAxisMarlinWriter : public WriterBase
-{
-public:
-
+ * \class FiveAxisMarlinWriter
+ * \brief The gcode writer for the Marlin syntax with five axes.
+ */
+class FiveAxisMarlinWriter : public WriterBase {
+  public:
     //! \brief Constructor
     FiveAxisMarlinWriter(GcodeMeta meta, const QSharedPointer<SettingsBase>& sb);
 
     //! \brief Writes initial setup instructions for the machine state
-    QString writeInitialSetup(Distance minimum_x, Distance minimum_y, Distance maximum_x, Distance maximum_y, int num_layers) override;
+    QString writeInitialSetup(Distance minimum_x, Distance minimum_y, Distance maximum_x, Distance maximum_y,
+                              int num_layers) override;
 
     //! \brief Writes G-Code to be executed at the start of the layer
     QString writeBeforeLayer(float min_z, QSharedPointer<SettingsBase> sb) override;
@@ -43,17 +38,12 @@ public:
                         QSharedPointer<SettingsBase> params) override;
 
     //! \brief Writes G-Code for line
-    QString writeLine(const Point& start_point,
-                      const Point& target_point,
+    QString writeLine(const Point& start_point, const Point& target_point,
                       const QSharedPointer<SettingsBase> params) override;
 
     //! \brief Writes G-Code for arc
-    QString writeArc(const Point &start_point,
-                     const Point &end_point,
-                     const Point &center_point,
-                     const Angle &angle,
-                     const bool &ccw,
-                     const QSharedPointer<SettingsBase> params) override;
+    QString writeArc(const Point& start_point, const Point& end_point, const Point& center_point, const Angle& angle,
+                     const bool& ccw, const QSharedPointer<SettingsBase> params) override;
 
     //! \brief Writes G-Code to be executed after each path
     QString writeAfterPath(RegionType type) override;
@@ -79,7 +69,7 @@ public:
     //! \brief Writes G-Code for a pause, G4
     QString writeDwell(Time time) override;
 
-private:
+  private:
     //! \brief Writes g-code coordinates WXYZ for a move or travel to the destination point
     QString writeCoordinates(Point destination);
     //! \brief Writes g-code for retraction moves
@@ -89,7 +79,8 @@ private:
 
     //! \brief true if first printing segment, false for subsquent paths - needed for Spiralize
     bool m_first_print;
-    //! \brief true if first travel segment, false for subsquent travels - needed for adjusting the start point in header
+    //! \brief true if first travel segment, false for subsquent travels - needed for adjusting the start point in
+    //! header
     bool m_first_travel;
     //! \brief true is first print motion of the layer
     bool m_layer_start;
@@ -101,8 +92,5 @@ private:
     //! \param list of tool numbers that should be on
     QString setTools(QVector<int> extruders);
 
-
-};  // class FiveAxisMarlinWriter
-}  // namespace ORNL
-
-#endif // FIVE_AXIS_MARLIN_WRITER_H
+}; // class FiveAxisMarlinWriter
+} // namespace ORNL

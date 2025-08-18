@@ -1,40 +1,35 @@
-#ifndef SLICEDIALOG_H
-#define SLICEDIALOG_H
+#pragma once
 
-// Qt Libraries
-#include <QDialog>
-#include <QProgressBar>
-
-// Local Libraries
+#include "QDialog"
+#include "QProgressBar"
 #include "utilities/enums.h"
 
 namespace ORNL {
-    /*!
-     * \class SliceDialog
-     * \brief Dialog that shows the current slice progress.
-     */
-    class SliceDialog : public QDialog {
-        Q_OBJECT
-        public:
-            //! \brief Standard constructor
-            SliceDialog(QWidget* parent = nullptr);
+/*!
+ * \class SliceDialog
+ * \brief Dialog that shows the current slice progress.
+ */
+class SliceDialog : public QDialog {
+    Q_OBJECT
+  public:
+    //! \brief Standard constructor
+    SliceDialog(QWidget* parent = nullptr);
 
-        signals:
-            //! \brief Signal slice to cancel when user clicks the button
-            void cancelSlice();
+  signals:
+    //! \brief Signal slice to cancel when user clicks the button
+    void cancelSlice();
 
-        public slots:
-            //! \brief Receive status updates from slicing process
-            //! \param type Current step type process
-            //! \param percentage Percentage completed
-            void updateStatus(StatusUpdateStepType type, int percentage);
+  public slots:
+    //! \brief Receive status updates from slicing process
+    //! \param type Current step type process
+    //! \param percentage Percentage completed
+    void updateStatus(StatusUpdateStepType type, int percentage);
 
-        private:
-            //! \brief Setup the static widgets and their layouts.
-            void setupUi();
+  private:
+    //! \brief Setup the static widgets and their layouts.
+    void setupUi();
 
-            //! \brief List of progress bars to update via status
-            QList<QProgressBar*> m_progress_bars;
-    };
-}  // namespace ORNL
-#endif  // SLICEDIALOG_H
+    //! \brief List of progress bars to update via status
+    QList<QProgressBar*> m_progress_bars;
+};
+} // namespace ORNL

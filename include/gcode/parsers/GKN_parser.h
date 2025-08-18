@@ -1,11 +1,10 @@
-#ifndef GKNPARSER_H
-#define GKNPARSER_H
+#pragma once
 
 #include "common_parser.h"
 
 namespace ORNL {
 /*!
- * \class BeamParser
+ * \class GKNParser
  * \brief This class implements the GCode parsing configuration for the
  * GKN 3D printer(s). \note The current commands that this class
  * implements are:
@@ -96,4 +95,3 @@ class GKNParser : public CommonParser {
     QHash<QString, QString> m_default_values;
 };
 } // namespace ORNL
-#endif // GKNPARSER_H

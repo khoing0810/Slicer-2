@@ -1,6 +1,10 @@
-// Header
 #include "threading/gcode_loader.h"
 
+#include "QDebug"
+#include "QFile"
+#include "QFileInfo"
+#include "QStringBuilder"
+#include "QTextStream"
 #include "gcode/gcode_command.h"
 #include "gcode/gcode_meta.h"
 #include "gcode/parsers/GKN_parser.h"
@@ -15,6 +19,7 @@
 #include "gcode/parsers/mvp_parser.h"
 #include "gcode/parsers/rpbf_parser.h"
 #include "gcode/parsers/siemens_parser.h"
+#include "gcode/parsers/tormach_parser.h"
 #include "geometry/segments/arc.h"
 #include "geometry/segments/bezier.h"
 #include "geometry/segments/line.h"
@@ -22,12 +27,6 @@
 #include "managers/session_manager.h"
 #include "managers/settings/settings_manager.h"
 #include "utilities/mathutils.h"
-
-#include <QDebug>
-#include <QFile>
-#include <QFileInfo>
-#include <QStringBuilder>
-#include <QTextStream>
 
 namespace ORNL {
 GCodeLoader::GCodeLoader(QString filename, bool alterFile)
@@ -46,17 +45,27 @@ GCodeLoader::GCodeLoader(QString filename, bool alterFile)
     m_rampingdown = QStringMatcher(Constants::PathModifierStrings::kRampingDown.toUpper());
     m_leadin = QStringMatcher(Constants::PathModifierStrings::kLeadIn.toUpper());
 
-    m_modifier_colors.push_back(PM->getVisualizationColor(VisualizationColors::kPrestart));
-    m_modifier_colors.push_back(PM->getVisualizationColor(VisualizationColors::kInitialStartup));
-    m_modifier_colors.push_back(PM->getVisualizationColor(VisualizationColors::kSlowDown));
-    m_modifier_colors.push_back(PM->getVisualizationColor(VisualizationColors::kTipWipeForward));
-    m_modifier_colors.push_back(PM->getVisualizationColor(VisualizationColors::kTipWipeReverse));
-    m_modifier_colors.push_back(PM->getVisualizationColor(VisualizationColors::kTipWipeAngled));
-    m_modifier_colors.push_back(PM->getVisualizationColor(VisualizationColors::kCoasting));
-    m_modifier_colors.push_back(PM->getVisualizationColor(VisualizationColors::kSpiralLift));
-    m_modifier_colors.push_back(PM->getVisualizationColor(VisualizationColors::kRampingUp));
-    m_modifier_colors.push_back(PM->getVisualizationColor(VisualizationColors::kRampingDown));
-    m_modifier_colors.push_back(PM->getVisualizationColor(VisualizationColors::kLeadIn));
+    m_modifier_colors.push_back(
+        PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kPrestart));
+    m_modifier_colors.push_back(
+        PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kInitialStartup));
+    m_modifier_colors.push_back(
+        PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kSlowDown));
+    m_modifier_colors.push_back(
+        PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kTipWipeForward));
+    m_modifier_colors.push_back(
+        PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kTipWipeReverse));
+    m_modifier_colors.push_back(
+        PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kTipWipeAngled));
+    m_modifier_colors.push_back(
+        PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kCoasting));
+    m_modifier_colors.push_back(
+        PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kSpiralLift));
+    m_modifier_colors.push_back(
+        PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kRampingUp));
+    m_modifier_colors.push_back(
+        PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kRampingDown));
+    m_modifier_colors.push_back(PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kLeadIn));
 
     m_perimeter = QStringMatcher(Constants::RegionTypeStrings::kPerimeter.toUpper());
     m_inset = QStringMatcher(Constants::RegionTypeStrings::kInset.toUpper());
@@ -100,12 +109,17 @@ QString GCodeLoader::additionalExportComments() {
 
     QString travelTypes = openingDelim % "Travel Types:";
     QString travelColors = openingDelim % "Travel Colors:";
-    for (const auto& color : PM->getVisualizationHexColors()) {
+    for (const auto& color : PreferencesManager::getInstance()->getVisualizationHexColors()) {
         travelTypes = travelTypes % " " % QString::fromStdString(color.first);
         travelColors = travelColors % " " % QString::fromStdString(color.second).right(6);
     }
     travelTypes = travelTypes % closingDelim % "\n";
     travelColors = travelColors % closingDelim % "\n";
+
+    if (m_selected_meta == GcodeMetaList::TormachMeta) // Tormach can't handle parsing the travel types and colors
+    {
+        return partMinTranslation;
+    }
 
     return partMinTranslation % travelTypes % travelColors;
 }
@@ -171,9 +185,8 @@ void GCodeLoader::sendGcodeModelObjFile(QString host, int port, QString machineN
 }
 
 void GCodeLoader::run() {
-    bool disableVisualization =
-        m_sb->setting<bool>(Constants::ExperimentalSettings::GcodeVisualization::kDisableVisualization);
-    int layerSkip = m_sb->setting<int>(Constants::ExperimentalSettings::GcodeVisualization::kVisualizationSkip);
+    bool disableVisualization = m_sb->setting<bool>(ES::GcodeVisualization::kDisableVisualization);
+    int layerSkip = m_sb->setting<int>(ES::GcodeVisualization::kVisualizationSkip);
 
     if (!m_filename.isEmpty() && (!disableVisualization || m_adjust_file)) {
         // Try-catch is necessary to prevent a crash when the GCode refresh button is clicked after an erroneous
@@ -242,12 +255,12 @@ void GCodeLoader::run() {
                     total_volume += layer_volumes[i];
                 }
 
-                PrintMaterial m_material = static_cast<PrintMaterial>(
-                    (int)visualizationSettings[Constants::MaterialSettings::Density::kMaterialType]);
+                PrintMaterial m_material =
+                    static_cast<PrintMaterial>((int)visualizationSettings[MS::Density::kMaterialType]);
 
-                Density materialDensity = ((m_material == PrintMaterial::kOther)
-                                               ? (visualizationSettings[Constants::MaterialSettings::Density::kDensity])
-                                               : toDensityValue(m_material));
+                Density materialDensity =
+                    ((m_material == PrintMaterial::kOther) ? (visualizationSettings[MS::Density::kDensity])
+                                                           : toDensityValue(m_material));
 
                 Mass total_mass = total_volume * materialDensity;
 
@@ -255,8 +268,7 @@ void GCodeLoader::run() {
                 emit forwardInfoToLayerTimeWindow(
                     layer_times, layer_FR_modifiers,
                     ForceMinimumLayerTime::kSlow_Feedrate ==
-                        static_cast<ForceMinimumLayerTime>(
-                            m_sb->setting<int>(Constants::MaterialSettings::Cooling::kForceMinLayerTimeMethod)));
+                        static_cast<ForceMinimumLayerTime>(m_sb->setting<int>(MS::Cooling::kForceMinLayerTimeMethod)));
 
                 weightInfo = QString::number((total_mass / m_selected_meta.m_mass_unit)()) % " " %
                              m_selected_meta.m_mass_unit.toString();
@@ -267,24 +279,29 @@ void GCodeLoader::run() {
                 QString keyInfo = "GCode file: " % m_filename % "\n" % "Total Time Estimate: " %
                                   MathUtils::formattedTimeSpan(total_time()) % "\n";
 
-                if (m_adjust_file && total_adjusted_time > 0 &&
-                    m_sb->setting<int>(Constants::MaterialSettings::Cooling::kForceMinLayerTime)) {
+                if (m_adjust_file && total_adjusted_time > 0 && m_sb->setting<int>(MS::Cooling::kForceMinLayerTime)) {
                     keyInfo =
                         keyInfo % "Total Adjusted Time: " % MathUtils::formattedTimeSpan(total_adjusted_time()) % "\n";
                 }
 
-                double volumeValue = total_volume() / pow<3>(PM->getDistanceUnit())();
-                double distanceValue = (m_parser->getTotalDistance() / PM->getDistanceUnit())();
-                double printingDistanceValue = (m_parser->getPrintingDistance() / PM->getDistanceUnit())();
-                double travelDistanceValue = (m_parser->getTravelDistance() / PM->getDistanceUnit())();
-                double massValue = (total_mass / PM->getMassUnit())();
-                keyInfo = keyInfo % "Volume: " % QString::number(volumeValue) % " " % PM->getDistanceUnit().toString() %
-                          "³\n" % "Printing Distance: " % QString::number(printingDistanceValue) % " " %
-                          PM->getDistanceUnit().toString() % "\n" % "Travel Distance: " %
-                          QString::number(travelDistanceValue) % " " % PM->getDistanceUnit().toString() % "\n" %
-                          "Total Distance: " % QString::number(distanceValue) % " " % PM->getDistanceUnit().toString() %
-                          "\n" % "Approximate Weight (" % toString(m_material) % "): " % QString::number(massValue) %
-                          " " % PM->getMassUnit().toString() % "\n";
+                double volumeValue = total_volume() / pow<3>(PreferencesManager::getInstance()->getDistanceUnit())();
+                double distanceValue =
+                    (m_parser->getTotalDistance() / PreferencesManager::getInstance()->getDistanceUnit())();
+                double printingDistanceValue =
+                    (m_parser->getPrintingDistance() / PreferencesManager::getInstance()->getDistanceUnit())();
+                double travelDistanceValue =
+                    (m_parser->getTravelDistance() / PreferencesManager::getInstance()->getDistanceUnit())();
+                double massValue = (total_mass / PreferencesManager::getInstance()->getMassUnit())();
+                keyInfo = keyInfo % "Volume: " % QString::number(volumeValue) % " " %
+                          PreferencesManager::getInstance()->getDistanceUnit().toString() % "³\n" %
+                          "Printing Distance: " % QString::number(printingDistanceValue) % " " %
+                          PreferencesManager::getInstance()->getDistanceUnit().toString() % "\n" % "Travel Distance: " %
+                          QString::number(travelDistanceValue) % " " %
+                          PreferencesManager::getInstance()->getDistanceUnit().toString() % "\n" % "Total Distance: " %
+                          QString::number(distanceValue) % " " %
+                          PreferencesManager::getInstance()->getDistanceUnit().toString() % "\n" %
+                          "Approximate Weight (" % toString(m_material) % "): " % QString::number(massValue) % " " %
+                          PreferencesManager::getInstance()->getMassUnit().toString() % "\n";
 
                 QTime qt(0, 0);
                 qt = qt.addMSecs(CSM->getSliceTimeElapsed());
@@ -293,11 +310,10 @@ void GCodeLoader::run() {
 
                 emit forwardInfoToMainWindow(keyInfo);
 
-                m_x_offset = visualizationSettings[Constants::PrinterSettings::Dimensions::kXOffset];
-                m_y_offset = visualizationSettings[Constants::PrinterSettings::Dimensions::kYOffset];
-                const Distance& z_offset = visualizationSettings[Constants::PrinterSettings::Dimensions::kZOffset];
-                const Distance& z_min =
-                    GSM->getGlobal()->setting<Distance>(Constants::PrinterSettings::Dimensions::kZMin);
+                m_x_offset = visualizationSettings[PRS::Dimensions::kXOffset];
+                m_y_offset = visualizationSettings[PRS::Dimensions::kYOffset];
+                const Distance& z_offset = visualizationSettings[PRS::Dimensions::kZOffset];
+                const Distance& z_min = GSM->getGlobal()->setting<Distance>(PRS::Dimensions::kZMin);
                 m_z_offset = (z_min - z_offset)() * Constants::OpenGL::kObjectToView;
                 m_start_pos = QVector3D(m_x_offset * Constants::OpenGL::kObjectToView,
                                         m_y_offset * Constants::OpenGL::kObjectToView, 0.0f);
@@ -319,7 +335,7 @@ void GCodeLoader::run() {
                 if (CSM->parts().size() == 1) {
                     // Retrieve the settings ranges for the first part
                     const QSharedPointer<Part>& part = CSM->parts().first();
-                    const QList<QSharedPointer<SettingsRange>>& ranges = part->ranges().values();
+                    const QList<QSharedPointer<SettingsRange>>& ranges = part->getSettingsRanges().values();
 
                     // Populate the layer settings for each range
                     for (const QSharedPointer<SettingsRange>& range : ranges) {
@@ -345,7 +361,8 @@ void GCodeLoader::run() {
                     QVector<QSharedPointer<SegmentBase>> layer;
 
                     for (const GcodeCommand& command : layer_commands) {
-                        QColor line_color(PM->getVisualizationColor(VisualizationColors::kUnknown));
+                        QColor line_color(
+                            PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kUnknown));
 
                         if (fontColors.contains(command.getComment())) {
                             line_color = fontColors[command.getComment()].foreground().color();
@@ -405,8 +422,7 @@ void GCodeLoader::run() {
             QString additionalHeaderBlock = openingDelim % "Sliced on: " %
                                             QDateTime::currentDateTime().toString("MM/dd/yyyy") % closingDelim % "\n" %
                                             openingDelim % "Expected Weight: " % weightInfo % closingDelim % "\n";
-            if (m_adjust_file && total_adjusted_time > 0 &&
-                m_sb->setting<int>(Constants::MaterialSettings::Cooling::kForceMinLayerTime)) {
+            if (m_adjust_file && total_adjusted_time > 0 && m_sb->setting<int>(MS::Cooling::kForceMinLayerTime)) {
                 additionalHeaderBlock +=
                     openingDelim % "Expected Build Time: " % MathUtils::formattedTimeSpan(total_adjusted_time()) %
                     closingDelim % "\n" % openingDelim % "Minimum Layer Time: " %
@@ -441,7 +457,7 @@ void GCodeLoader::run() {
                     ret = QFile::rename(tempFile.fileName(), m_filename);
                 }
 
-                if (PM->getKatanaSendOutput()) {
+                if (PreferencesManager::getInstance()->getKatanaSendOutput()) {
                     savePartsModelObjFile();
                 }
             }
@@ -558,8 +574,8 @@ void GCodeLoader::setParser(QStringList& originalLines, QStringList& lines) {
                 m_selected_meta = GcodeMetaList::ORNLMeta;
             }
             else if (m_lines[m_current_line].contains(toString(GcodeSyntax::kORNL).toUpper())) {
-                m_parser.reset(new CommonParser(GcodeMetaList::ORNLMeta, m_adjust_file, originalLines, lines));
-                m_selected_meta = GcodeMetaList::ORNLMeta;
+                m_parser.reset(new CommonParser(GcodeMetaList::ORNLMetricMeta, m_adjust_file, originalLines, lines));
+                m_selected_meta = GcodeMetaList::ORNLMetricMeta;
             }
             else if (m_lines[m_current_line].contains(toString(GcodeSyntax::kRomiFanuc).toUpper())) {
                 m_parser.reset(new CommonParser(GcodeMetaList::RomiFanucMeta, m_adjust_file, originalLines, lines));
@@ -587,7 +603,7 @@ void GCodeLoader::setParser(QStringList& originalLines, QStringList& lines) {
                 m_selected_meta = GcodeMetaList::CincinnatiMeta;
             }
             else if (m_lines[m_current_line].contains(toString(GcodeSyntax::kTormach).toUpper())) {
-                m_parser.reset(new CincinnatiParser(GcodeMetaList::TormachMeta, m_adjust_file, originalLines, lines));
+                m_parser.reset(new TormachParser(GcodeMetaList::TormachMeta, m_adjust_file, originalLines, lines));
                 m_selected_meta = GcodeMetaList::TormachMeta;
             }
             else if (m_lines[m_current_line].contains(toString(GcodeSyntax::kAeroBasic).toUpper())) {
@@ -619,77 +635,78 @@ void GCodeLoader::setParser(QStringList& originalLines, QStringList& lines) {
 }
 
 QColor GCodeLoader::determineFontColor(const QString& comment) {
+
     if (m_prestart.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kPrestart);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kPrestart);
     }
     if (m_initial_startup.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kInitialStartup);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kInitialStartup);
     }
     if (m_slowdown.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kSlowDown);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kSlowDown);
     }
     if (m_forward_tipwipe.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kTipWipeForward);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kTipWipeForward);
     }
     if (m_reverse_tipwipe.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kTipWipeReverse);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kTipWipeReverse);
     }
     if (m_angled_tipwipe.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kTipWipeAngled);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kTipWipeAngled);
     }
     if (m_coasting.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kCoasting);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kCoasting);
     }
     if (m_spirallift.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kSpiralLift);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kSpiralLift);
     }
     if (m_rampingup.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kRampingUp);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kRampingUp);
     }
     if (m_rampingdown.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kRampingDown);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kRampingDown);
     }
     if (m_leadin.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kLeadIn);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kLeadIn);
     }
     if (m_perimeter.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kPerimeter);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kPerimeter);
     }
     if (m_inset.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kInset);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kInset);
     }
     if (m_infill.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kInfill);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kInfill);
     }
     if (m_skin.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kSkin);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kSkin);
     }
     if (m_skeleton.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kSkeleton);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kSkeleton);
     }
     if (m_support.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kSupport);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kSupport);
     }
     if (m_travel.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kTravel);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kTravel);
     }
     if (m_raft.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kRaft);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kRaft);
     }
     if (m_brim.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kBrim);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kBrim);
     }
     if (m_skirt.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kSkirt);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kSkirt);
     }
     if (m_laserscan.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kLaserScan);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kLaserScan);
     }
     if (m_thermalscan.indexIn(comment) != -1) {
-        return PM->getVisualizationColor(VisualizationColors::kThermalScan);
+        return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kThermalScan);
     }
 
-    return PM->getVisualizationColor(VisualizationColors::kUnknown);
+    return PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kUnknown);
 }
 
 void GCodeLoader::setSegmentDisplayInfo(QSharedPointer<SegmentBase>& segment, const QColor& color,
@@ -697,10 +714,11 @@ void GCodeLoader::setSegmentDisplayInfo(QSharedPointer<SegmentBase>& segment, co
                                         const int& line_num, const int& layer_num) {
     // Determine the display type of the segment
     SegmentDisplayType type;
-    if (color == PM->getVisualizationColor(VisualizationColors::kTravel)) {
+
+    if (color == PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kTravel)) {
         type = SegmentDisplayType::kTravel;
     }
-    else if (color == PM->getVisualizationColor(VisualizationColors::kSupport)) {
+    else if (color == PreferencesManager::getInstance()->getVisualizationColor(VisualizationColors::kSupport)) {
         type = SegmentDisplayType::kSupport;
     }
     else {
@@ -709,46 +727,32 @@ void GCodeLoader::setSegmentDisplayInfo(QSharedPointer<SegmentBase>& segment, co
 
     // Set the display info of the segment
     float display_width = 0.0f;
-    float display_height =
-        m_sb->setting<float>(Constants::ProfileSettings::Layer::kLayerHeight) * Constants::OpenGL::kObjectToView;
+    float display_height = m_sb->setting<float>(PS::Layer::kLayerHeight) * Constants::OpenGL::kObjectToView;
     float display_length = start_pos.distanceToPoint(end_pos);
     float scale =
         m_modifier_colors.contains(color) ? 1.1f : 1.0f; // Scale modifier segments by 1.1 for better visibility
 
     // Set the display width of the segment based on its region type
     if (comment.contains("PERIMETER")) {
-        display_width =
-            m_sb->setting<float>(Constants::ProfileSettings::Perimeter::kBeadWidth) * Constants::OpenGL::kObjectToView;
+        display_width = m_sb->setting<float>(PS::Perimeter::kBeadWidth) * Constants::OpenGL::kObjectToView;
     }
     else if (comment.contains("INSET")) {
-        display_width =
-            m_sb->setting<float>(Constants::ProfileSettings::Inset::kBeadWidth) * Constants::OpenGL::kObjectToView;
+        display_width = m_sb->setting<float>(PS::Inset::kBeadWidth) * Constants::OpenGL::kObjectToView;
     }
     else if (comment.contains("SKELETON")) {
-        // If the skeleton is adaptive, extract the bead width from the comment, otherwise use the static bead width
-        if (m_sb->setting<bool>(Constants::ProfileSettings::Skeleton::kSkeletonAdapt)) {
-            // Extract the bead width from the comment
-            unsigned int start = comment.indexOf("-") + 1;
-            unsigned int end = comment.indexOf(" ", start);
-            float bead_width = comment.mid(start, end - start).toFloat();
-            display_width = bead_width * Constants::OpenGL::kObjectToView;
-        }
-        else { // Static skeleton bead width
-            display_width = m_sb->setting<float>(Constants::ProfileSettings::Skeleton::kBeadWidth) *
-                            Constants::OpenGL::kObjectToView;
-        }
+        int start = comment.indexOf("SKELETON-") + 9;
+        int end = comment.indexOf(" ", start);
+        float bead_width = comment.mid(start, end - start).toFloat();
+        display_width = bead_width * Constants::OpenGL::kObjectToView;
     }
     else if (comment.contains("SKIN")) {
-        display_width =
-            m_sb->setting<float>(Constants::ProfileSettings::Skin::kBeadWidth) * Constants::OpenGL::kObjectToView;
+        display_width = m_sb->setting<float>(PS::Skin::kBeadWidth) * Constants::OpenGL::kObjectToView;
     }
     else if (comment.contains("INFILL")) {
-        display_width =
-            m_sb->setting<float>(Constants::ProfileSettings::Infill::kBeadWidth) * Constants::OpenGL::kObjectToView;
+        display_width = m_sb->setting<float>(PS::Infill::kBeadWidth) * Constants::OpenGL::kObjectToView;
     }
     else { // Default to layer bead width
-        display_width =
-            m_sb->setting<float>(Constants::ProfileSettings::Layer::kBeadWidth) * Constants::OpenGL::kObjectToView;
+        display_width = m_sb->setting<float>(PS::Layer::kBeadWidth) * Constants::OpenGL::kObjectToView;
     }
 
     // Set the display info of the segment
@@ -788,8 +792,11 @@ void GCodeLoader::setSegmentMetaInfo(QSharedPointer<SegmentBase>& segment, const
     }
 
     // Set the length info of the segment
-    float length = m_info_start_pos.distanceToPoint(info_end_pos) / PM->getDistanceUnit()();
-    segment->m_segment_info_meta.length = QString().asprintf("%0.2f", length) % " " % PM->getDistanceUnitText();
+
+    float length =
+        m_info_start_pos.distanceToPoint(info_end_pos) / PreferencesManager::getInstance()->getDistanceUnit()();
+    segment->m_segment_info_meta.length =
+        QString().asprintf("%0.2f", length) % " " % PreferencesManager::getInstance()->getDistanceUnitText();
 }
 
 QVector<QSharedPointer<SegmentBase>>
@@ -804,8 +811,9 @@ GCodeLoader::generateVisualSegment(int line_num, int layer_num, const QColor& co
 
     if (parameters.contains('F')) {
         info_speed_set = true;
-        m_info_speed = QString().asprintf("%0.4f", (Velocity(parameters['F']) / PM->getVelocityUnit())()) % " " %
-                       PM->getVelocityUnitText();
+        m_info_speed = QString().asprintf("%0.4f", (Velocity(parameters['F']) /
+                                                    PreferencesManager::getInstance()->getVelocityUnit())()) %
+                       " " % PreferencesManager::getInstance()->getVelocityUnitText();
     }
     if (parameters.contains('S')) {
         m_info_extruder_speed = QString().asprintf("%0.4f", (AngularVelocity(parameters['S']) /

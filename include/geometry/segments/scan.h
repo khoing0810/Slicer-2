@@ -1,9 +1,7 @@
-#ifndef SCAN_H
-#define SCAN_H
+#pragma once
 
+#include "gcode/writers/writer_base.h"
 #include "geometry/segment_base.h"
-
-#include <gcode/writers/writer_base.h>
 
 namespace ORNL {
 /*!
@@ -33,5 +31,3 @@ class ScanSegment : public SegmentBase {
     bool m_on_off;
 };
 } // namespace ORNL
-
-#endif // SCAN_H

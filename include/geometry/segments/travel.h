@@ -1,9 +1,7 @@
-#ifndef TRAVEL_H
-#define TRAVEL_H
+#pragma once
 
+#include "gcode/writers/writer_base.h"
 #include "geometry/segment_base.h"
-
-#include <gcode/writers/writer_base.h>
 
 namespace ORNL {
 /*!
@@ -36,5 +34,3 @@ class TravelSegment : public SegmentBase {
     TravelLiftType m_lift_type;
 };
 } // namespace ORNL
-
-#endif // TRAVEL_H

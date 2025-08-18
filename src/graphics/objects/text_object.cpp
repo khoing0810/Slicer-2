@@ -1,91 +1,76 @@
 #include "graphics/objects/text_object.h"
 
-// Qt
-#include <QPainter>
-
-// Local
+#include "QPainter"
 #include "graphics/support/shape_factory.h"
 #include "utilities/constants.h"
-#include "units/unit.h"
 
 namespace ORNL {
-    TextObject::TextObject(ORNL::BaseView* view, QString str, float scale, bool billboarding) {
-        std::vector<float> vertices;
-        std::vector<float> normals;
-        std::vector<float> colors;
-        std::vector<float> uv;
+TextObject::TextObject(ORNL::BaseView* view, QString str, float scale, bool billboarding) {
+    std::vector<float> vertices;
+    std::vector<float> normals;
+    std::vector<float> colors;
+    std::vector<float> uv;
 
-        m_str = str;
+    m_str = str;
 
-        // Assemble texture.
-        QByteArray s = str.toUtf8();
+    // Assemble texture.
+    QByteArray s = str.toUtf8();
 
-        // TODO: probably use better texture.
-        QImage bitmap_font(":/textures/gl_font.png");
-        QImage result(8 * str.length(), 8, QImage::Format_Mono);
+    // TODO: probably use better texture.
+    QImage bitmap_font(":/textures/gl_font.png");
+    QImage result(8 * str.length(), 8, QImage::Format_Mono);
 
-        QPainter painter(&result);
+    QPainter painter(&result);
 
-        for (int i = 0; i < str.length(); i++) {
-            uchar c = s[i];
-            // Index into image. Font is in ASCII order currently. Might be reasonable to extend in the future.
-            c -= ' ';
-            QImage bitmap_char = bitmap_font.copy(c * 8, 0, 8, 8);
+    for (int i = 0; i < str.length(); i++) {
+        uchar c = s[i];
+        // Index into image. Font is in ASCII order currently. Might be reasonable to extend in the future.
+        c -= ' ';
+        QImage bitmap_char = bitmap_font.copy(c * 8, 0, 8, 8);
 
-            painter.drawImage(i * 8, 0, bitmap_char);
-        }
-
-        painter.end();
-        //result.invertPixels();
-
-        ShapeFactory::createRectangle(scale * str.length(), scale, 0.1, QMatrix4x4(), Constants::Colors::kWhite, vertices, colors, normals);
-
-        uv = {
-            // Bottom face
-            0, 0,
-            0, 0,
-            0, 0,
-            0, 0,
-            0, 0,
-            0, 0,
-
-            // Top face
-            0, 1,
-            1, 1,
-            0, 0,
-            1, 1,
-            1, 0,
-            0, 0
-        };
-
-        this->populateGL(view, vertices, normals, colors, GL_TRIANGLES, uv, result);
-
-        this->setBillboarding(billboarding);
+        painter.drawImage(i * 8, 0, bitmap_char);
     }
 
-    void TextObject::setText(QString str) {
-        m_str = str;
+    painter.end();
+    // result.invertPixels();
 
-        // Assemble texture.
-        QByteArray s = str.toUtf8();
+    ShapeFactory::createRectangle(scale * str.length(), scale, 0.1, QMatrix4x4(), Constants::Colors::kWhite, vertices,
+                                  colors, normals);
 
-        // TODO: probably use better texture.
-        QImage bitmap_font(":/textures/gl_font.png");
-        QImage result(8 * str.length(), 8, QImage::Format_Mono);
+    uv = {// Bottom face
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 
-        QPainter painter(&result);
+          // Top face
+          0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0};
 
-        for (int i = 0; i < str.length(); i++) {
-            uchar c = s[i];
-            // Index into image. Font is in ASCII order currently. Might be reasonable to extend in the future.
-            c -= ' ';
-            QImage bitmap_char = bitmap_font.copy(c * 8, 0, 8, 8);
+    this->populateGL(view, vertices, normals, colors, GL_TRIANGLES, uv, result);
 
-            painter.drawImage(i * 8, 0, bitmap_char);
-        }
-
-        painter.end();
-
-        this->replaceTexture(result);
-    }
+    this->setBillboarding(billboarding);
 }
+
+void TextObject::setText(QString str) {
+    m_str = str;
+
+    // Assemble texture.
+    QByteArray s = str.toUtf8();
+
+    // TODO: probably use better texture.
+    QImage bitmap_font(":/textures/gl_font.png");
+    QImage result(8 * str.length(), 8, QImage::Format_Mono);
+
+    QPainter painter(&result);
+
+    for (int i = 0; i < str.length(); i++) {
+        uchar c = s[i];
+        // Index into image. Font is in ASCII order currently. Might be reasonable to extend in the future.
+        c -= ' ';
+        QImage bitmap_char = bitmap_font.copy(c * 8, 0, 8, 8);
+
+        painter.drawImage(i * 8, 0, bitmap_char);
+    }
+
+    painter.end();
+
+    this->replaceTexture(result);
+}
+} // namespace ORNL

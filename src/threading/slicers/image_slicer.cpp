@@ -1,16 +1,25 @@
 #include "threading/slicers/image_slicer.h"
 
+#include "QtCore/QDir"
+#include "QtCore/QSharedPointer"
 #include "cross_section/cross_section.h"
 #include "managers/session_manager.h"
 #include "managers/settings/settings_manager.h"
 #include "slicing/slicing_utilities.h"
 
-#include <QtCore/QDir>
-#include <QtCore/QSharedPointer>
+#undef emit
+#include "vtkImageData.h"
+#include "vtkImageStencilToImage.h"
+#include "vtkLine.h"
+#include "vtkPNGWriter.h"
+#include "vtkPolyData.h"
+#include "vtkPolyDataToImageStencil.h"
+#define emit
+
 #include <atomic>
+#include <functional>
 #include <thread>
 #include <vector>
-#include <functional>
 
 namespace ORNL {
 
@@ -21,7 +30,7 @@ void ImageSlicer::preProcess(nlohmann::json opt_data) {
     QVector<QSharedPointer<Part>> moreParts = SlicingUtilities::GetPartsByType(CSM->parts(), MeshType::kSupport);
     parts += moreParts;
 
-    Distance layerHeight = GSM->getGlobal()->setting<Distance>(Constants::ProfileSettings::Layer::kLayerHeight);
+    Distance layerHeight = GSM->getGlobal()->setting<Distance>(PS::Layer::kLayerHeight);
     Point globalMax;
 
     QVector<SlicingPlaneWithLayer> slicing_planes;
@@ -31,8 +40,8 @@ void ImageSlicer::preProcess(nlohmann::json opt_data) {
     QVector<MeshAndBounds> supportMeshes;
 
     QMatrix4x4 center;
-    QVector3D shift(QVector3D(GSM->getGlobal()->setting<double>(Constants::PrinterSettings::Dimensions::kXOffset),
-                              GSM->getGlobal()->setting<double>(Constants::PrinterSettings::Dimensions::kYOffset), 0));
+    QVector3D shift(QVector3D(GSM->getGlobal()->setting<double>(PRS::Dimensions::kXOffset),
+                              GSM->getGlobal()->setting<double>(PRS::Dimensions::kYOffset), 0));
     center.translate(shift);
 
     for (QSharedPointer<Part> part : parts) {
@@ -48,9 +57,8 @@ void ImageSlicer::preProcess(nlohmann::json opt_data) {
             mesh = QSharedPointer<OpenMesh>::create(OpenMesh(*dynamic_cast<OpenMesh*>(part->rootMesh().get())));
 
         QMatrix4x4 trans = mesh->transformation();
-        trans.translate(QVector3D(GSM->getGlobal()->setting<double>(Constants::PrinterSettings::Dimensions::kXOffset),
-                                  GSM->getGlobal()->setting<double>(Constants::PrinterSettings::Dimensions::kYOffset),
-                                  0));
+        trans.translate(QVector3D(GSM->getGlobal()->setting<double>(PRS::Dimensions::kXOffset),
+                                  GSM->getGlobal()->setting<double>(PRS::Dimensions::kYOffset), 0));
         mesh->setTransformation(trans);
 
         currentMesh.m_mesh = mesh;
@@ -103,7 +111,8 @@ void ImageSlicer::preProcess(nlohmann::json opt_data) {
     QSharedPointer<SettingsBase> consoleSettings = GSM->getConsoleSettings();
     if (!consoleSettings->empty()) {
         if (consoleSettings->contains(Constants::ConsoleOptionStrings::kSingleSliceHeight)) {
-            auto vec = consoleSettings->setting<std::vector<double>>(Constants::ConsoleOptionStrings::kSingleSliceHeight);
+            auto vec =
+                consoleSettings->setting<std::vector<double>>(Constants::ConsoleOptionStrings::kSingleSliceHeight);
             QVector<double> heights = QVector<double>(vec.begin(), vec.end());
             for (double height : heights) {
                 int layer = qRound(height / layerHeight()) - 1;
@@ -114,7 +123,8 @@ void ImageSlicer::preProcess(nlohmann::json opt_data) {
         }
 
         if (consoleSettings->contains(Constants::ConsoleOptionStrings::kSingleSliceLayerNumber)) {
-            auto vec = consoleSettings->setting<std::vector<int>>(Constants::ConsoleOptionStrings::kSingleSliceLayerNumber);
+            auto vec =
+                consoleSettings->setting<std::vector<int>>(Constants::ConsoleOptionStrings::kSingleSliceLayerNumber);
             layers = QVector<int>(vec.begin(), vec.end());
         }
     }
@@ -140,20 +150,17 @@ void ImageSlicer::preProcess(nlohmann::json opt_data) {
 
     emit statusUpdate(StatusUpdateStepType::kPreProcess, 100);
 
-    double xResolution =
-        GSM->getGlobal()->setting<double>(Constants::ExperimentalSettings::ImageResolution::kImageResolutionX);
-    double yResolution =
-        GSM->getGlobal()->setting<double>(Constants::ExperimentalSettings::ImageResolution::kImageResolutionY);
-    int volumeXDim = std::ceil((GSM->getGlobal()->setting<double>(Constants::PrinterSettings::Dimensions::kXMax) -
-                                GSM->getGlobal()->setting<double>(Constants::PrinterSettings::Dimensions::kXMin)) /
+    double xResolution = GSM->getGlobal()->setting<double>(ES::ImageResolution::kImageResolutionX);
+    double yResolution = GSM->getGlobal()->setting<double>(ES::ImageResolution::kImageResolutionY);
+    int volumeXDim = std::ceil((GSM->getGlobal()->setting<double>(PRS::Dimensions::kXMax) -
+                                GSM->getGlobal()->setting<double>(PRS::Dimensions::kXMin)) /
                                xResolution) +
                      1;
 
-    int volumeYDim = std::ceil((GSM->getGlobal()->setting<double>(Constants::PrinterSettings::Dimensions::kYMax) -
-                                GSM->getGlobal()->setting<double>(Constants::PrinterSettings::Dimensions::kYMin)) /
+    int volumeYDim = std::ceil((GSM->getGlobal()->setting<double>(PRS::Dimensions::kYMax) -
+                                GSM->getGlobal()->setting<double>(PRS::Dimensions::kYMin)) /
                                yResolution) +
                      1;
-
 
     parallelForDynamic(0, slicing_planes.size(), 100, [&](int i) {
         Plane currentPlane = slicing_planes[i].m_slicing_plane;
@@ -165,9 +172,8 @@ void ImageSlicer::preProcess(nlohmann::json opt_data) {
 
         for (int j = 0; j < allMeshes.size(); ++j) {
             if (allMeshes[j].m_mesh->max().z() >= currentPlane.point().z()) {
-                PolygonList result = CrossSection::doCrossSection(
-                    allMeshes[j].m_mesh, currentPlane, shift_amount,
-                    average_normal, GSM->getGlobal());
+                PolygonList result = CrossSection::doCrossSection(allMeshes[j].m_mesh, currentPlane, shift_amount,
+                                                                  average_normal, GSM->getGlobal());
 
                 for (int k = result.size() - 1; k >= 0; --k) {
                     if (result[k].size() <= 2)
@@ -179,8 +185,8 @@ void ImageSlicer::preProcess(nlohmann::json opt_data) {
             }
         }
 
-        createImageStencilVTK(currentCrossSections, slicing_planes[i].m_layer,
-                            xResolution, yResolution, volumeXDim, volumeYDim);
+        createImageStencilVTK(currentCrossSections, slicing_planes[i].m_layer, xResolution, yResolution, volumeXDim,
+                              volumeYDim);
     });
 
     // create companion json file
@@ -286,7 +292,7 @@ void ImageSlicer::createImageStencilVTK(QVector<PolygonListAndColor> geometryAnd
 
 void ImageSlicer::parallelForDynamic(int start, int end, int batchSize, const std::function<void(int)>& func) {
     const int total = end - start;
-    std::atomic<int> index{start};
+    std::atomic<int> index {start};
 
     int thread_count = std::jthread::hardware_concurrency();
     std::vector<std::jthread> threads;
@@ -295,7 +301,8 @@ void ImageSlicer::parallelForDynamic(int start, int end, int batchSize, const st
         threads.emplace_back([&]() {
             while (true) {
                 int i = index.fetch_add(batchSize);
-                if (i >= end) break;
+                if (i >= end)
+                    break;
 
                 int i_end = std::min(i + batchSize, end);
                 for (int j = i; j < i_end; ++j) {

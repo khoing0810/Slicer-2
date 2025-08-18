@@ -1,36 +1,26 @@
 #include "gcode/parsers/mvp_parser.h"
 
-#include <QString>
-#include <QStringList>
-#include <QVector>
-#include <QTextStream>
+#include "QString"
+#include "QStringList"
+#include "QTextStream"
+#include "QVector"
 
-#include "exceptions/exceptions.h"
-#include "units/unit.h"
+namespace ORNL {
+MVPParser::MVPParser(GcodeMeta meta, bool allowLayerAlter, QStringList& lines, QStringList& upperLines)
+    : CommonParser(meta, allowLayerAlter, lines, upperLines) {
+    config();
+}
 
-namespace ORNL
-{
-    MVPParser::MVPParser(GcodeMeta meta, bool allowLayerAlter, QStringList& lines, QStringList& upperLines)
-        : CommonParser(meta, allowLayerAlter, lines, upperLines)
-    {
-        config();
-    }
+void MVPParser::config() {
+    CommonParser::config();
 
-    void MVPParser::config()
-    {
-        CommonParser::config();
+    addCommandMapping("M124", std::bind(&MVPParser::M124Handler, this, std::placeholders::_1));
+}
 
-        addCommandMapping(
-            "M124",
-            std::bind(
-                &MVPParser::M124Handler, this, std::placeholders::_1));
-    }
+// M124 (Turn Extruder OFF)
+void MVPParser::M124Handler(QVector<QString> params) {
+    // redirect - essentially an M5 command
+    CommonParser::M5Handler(params);
+}
 
-    //M124 (Turn Extruder OFF)
-    void MVPParser::M124Handler(QVector<QString> params)
-    {
-        //redirect - essentially an M5 command
-        CommonParser::M5Handler(params);
-    }
-
-}  // namespace ORNL
+} // namespace ORNL

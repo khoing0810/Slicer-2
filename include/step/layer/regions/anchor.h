@@ -1,7 +1,5 @@
-#ifndef ANCHOR_H
-#define ANCHOR_H
+#pragma once
 
-// Local
 #include "step/layer/regions/region_base.h"
 
 namespace ORNL {
@@ -44,5 +42,3 @@ class Anchor : public RegionBase {
     QVector<Polyline> m_computed_geometry;
 };
 } // namespace ORNL
-
-#endif // ANCHOR_H

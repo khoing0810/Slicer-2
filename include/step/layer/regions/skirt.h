@@ -1,7 +1,5 @@
-#ifndef SKIRT_H
-#define SKIRT_H
+#pragma once
 
-// Local
 #include "step/layer/regions/region_base.h"
 
 namespace ORNL {
@@ -44,5 +42,3 @@ class Skirt : public RegionBase {
     QVector<Polyline> m_computed_geometry;
 };
 } // namespace ORNL
-
-#endif // SKIRT_H

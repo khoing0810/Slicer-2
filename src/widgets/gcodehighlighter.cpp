@@ -1,21 +1,16 @@
 #include "widgets/gcodehighlighter.h"
 
-namespace ORNL
-{
-    GcodeHighlighter::GcodeHighlighter(QTextDocument* parent)
-        : QSyntaxHighlighter(parent)
-    {}
+namespace ORNL {
+GcodeHighlighter::GcodeHighlighter(QTextDocument* parent) : QSyntaxHighlighter(parent) {}
 
-    void GcodeHighlighter::setColorRules(QHash<QString, QTextCharFormat> colorHash, QSet<int> layerSkipLineNumbers)
-    {
-        m_color_hash = colorHash;
-        m_layer_skip_numbers = layerSkipLineNumbers;
-    }
+void GcodeHighlighter::setColorRules(QHash<QString, QTextCharFormat> colorHash, QSet<int> layerSkipLineNumbers) {
+    m_color_hash = colorHash;
+    m_layer_skip_numbers = layerSkipLineNumbers;
+}
 
-    void GcodeHighlighter::highlightBlock(const QString& text)
-    {
-        if(!m_layer_skip_numbers.contains(this->currentBlock().blockNumber()))
-            setFormat(0, text.length(), m_color_hash[text]);
-    }
+void GcodeHighlighter::highlightBlock(const QString& text) {
+    if (!m_layer_skip_numbers.contains(this->currentBlock().blockNumber()))
+        setFormat(0, text.length(), m_color_hash[text]);
+}
 
-}  // namespace ORNL
+} // namespace ORNL

@@ -1,5 +1,5 @@
-#ifndef MAZAK_PARSER_H
-#define MAZAK_PARSER_H
+#pragma once
+
 #include "common_parser.h"
 
 namespace ORNL {
@@ -61,5 +61,3 @@ class MazakParser : public CommonParser {
     QString m_feedrate_reference;
 };
 } // namespace ORNL
-
-#endif // MAZAK_PARSER_H

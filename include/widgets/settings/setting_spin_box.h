@@ -1,10 +1,8 @@
-#ifndef SETTING_SPIN_BOX_H
-#define SETTING_SPIN_BOX_H
+#pragma once
 
+#include "QSpinBox"
 #include "widgets/settings/setting_row_base.h"
 #include "widgets/settings/setting_tab.h"
-
-#include <QSpinBox>
 
 namespace ORNL {
 class SettingTab;
@@ -77,4 +75,3 @@ class SettingSpinBox : public QSpinBox, public SettingRowBase {
     bool m_warn;
 };
 } // namespace ORNL
-#endif // SETTING_SPIN_BOX_H

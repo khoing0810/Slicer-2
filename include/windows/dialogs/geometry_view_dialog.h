@@ -1,30 +1,27 @@
 #pragma once
 
-// Qt
-#include <QDialog>
-#include <QHBoxLayout>
-#include <QGraphicsView>
-
-// Local
-#include "widgets/scrollable_graphics_view.h"
+#include "QDialog"
+#include "QGraphicsView"
+#include "QHBoxLayout"
 #include "geometry/polyline.h"
+#include "widgets/scrollable_graphics_view.h"
 
 namespace ORNL {
-    class GeometryView : public QDialog {
-        public:
-            GeometryView(QWidget* parent = nullptr);
+class GeometryView : public QDialog {
+  public:
+    GeometryView(QWidget* parent = nullptr);
 
-            void addPolyline(Polyline polyline, QColor color = QColor());
+    void addPolyline(Polyline polyline, QColor color = QColor());
 
-            void addPolygon(PolygonList polygon, QColor color = QColor());
+    void addPolygon(PolygonList polygon, QColor color = QColor());
 
-            void jumpTo(Point location);
+    void jumpTo(Point location);
 
-            void clear();
+    void clear();
 
-        private:
-            ScrollableGraphicsView* m_polygon_view;
+  private:
+    ScrollableGraphicsView* m_polygon_view;
 
-            QHBoxLayout* m_layout;
-    };
-}
+    QHBoxLayout* m_layout;
+};
+} // namespace ORNL

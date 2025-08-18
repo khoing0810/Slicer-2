@@ -1,10 +1,9 @@
 #include "managers/preferences_manager.h"
 
+#include "QDir"
+#include "QStandardPaths"
 #include "exceptions/exceptions.h"
 #include "utilities/qt_json_conversion.h"
-
-#include <QDir>
-#include <QStandardPaths>
 
 namespace ORNL {
 QSharedPointer<PreferencesManager> PreferencesManager::m_singleton = QSharedPointer<PreferencesManager>();
