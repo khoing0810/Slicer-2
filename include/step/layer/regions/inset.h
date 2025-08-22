@@ -1,7 +1,5 @@
-#ifndef INSET_H
-#define INSET_H
+#pragma once
 
-// Local
 #include "step/layer/regions/region_base.h"
 
 namespace ORNL {
@@ -40,9 +38,7 @@ class Inset : public RegionBase {
     //! \brief Sets the single path geometry
     //! \param sp_geometry: the new geometry
     void setSinglePathGeometry(QVector<SinglePath::PolygonList> sp_geometry);
-#endif
 
-#ifdef HAVE_SINGLE_PATH
     //! \brief Creates single paths for this region, plus any connected ones from insets
     void createSinglePaths();
 #endif
@@ -66,6 +62,22 @@ class Inset : public RegionBase {
     //! \param innerMostClosedContour used for Prestarts (currently only skins/infill)
     void calculateModifiers(Path& path, bool supportsG3, QVector<Path>& innerMostClosedContour) override;
 
+    /**
+     * @brief Create a path with localized settings applied to segments based on settings regions.
+     * @param[in] line Polyline representing the path.
+     * @return Path with localized settings applied.
+     * @warning Handles cases of overlapping settings regions by applying the first region found.
+     */
+    Path createPathWithLocalizedSettings(const Polyline& line);
+
+    /**
+     * @brief Populates the segment settings with the passed settings base.
+     * @param[in,out] segment_sb: The segment settings base to populate.
+     * @param[in] parent_sb: The settings base to apply.
+     */
+    static void populateSegmentSettings(QSharedPointer<SettingsBase> segment_sb,
+                                        const QSharedPointer<SettingsBase>& parent_sb);
+
     //! \brief Holds the computed geometry before it is converted into paths
     QVector<Polyline> m_computed_geometry;
 
@@ -83,5 +95,3 @@ class Inset : public RegionBase {
     QVector<Path> m_inner_most_path_set;
 };
 } // namespace ORNL
-
-#endif // INSET_H

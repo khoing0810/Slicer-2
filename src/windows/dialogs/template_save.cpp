@@ -1,11 +1,10 @@
-// Header
 #include "windows/dialogs/template_save.h"
 
-#include "managers/settings/settings_manager.h"
-//
 #include "managers/preferences_manager.h"
+#include "managers/settings/settings_manager.h"
 
 namespace ORNL {
+
 TemplateSaveDialog::TemplateSaveDialog(QWidget* parent)
     : QDialog(parent), m_filename(QDir::homePath() + "/template.s2c") {
     m_convertable_types = QList<QString> {"location", "distance", "voltage",     "speed", "accel", "density",
@@ -368,44 +367,48 @@ void TemplateSaveDialog::setupEvents() {
 QString TemplateSaveDialog::convertRawValue(QString type, double value) {
     if (type == "location" || type == "distance") {
         Distance base_value(value);
-        return QString::number(base_value.to(PM->getDistanceUnit()));
+        return QString::number(base_value.to(PreferencesManager::getInstance()->getDistanceUnit()));
     }
     else if (type == "voltage") {
         Voltage base_value(value);
-        return QString::number(base_value.to(PM->getVoltageUnit()));
+        return QString::number(base_value.to(PreferencesManager::getInstance()->getVoltageUnit()));
     }
     else if (type == "speed") {
         Velocity base_value(value);
-        return QString::number(base_value.to(PM->getVelocityUnit()));
+        return QString::number(base_value.to(PreferencesManager::getInstance()->getVelocityUnit()));
     }
     else if (type == "accel") {
         Acceleration base_value(value);
-        return QString::number(base_value.to(PM->getAccelerationUnit()));
+        return QString::number(base_value.to(PreferencesManager::getInstance()->getAccelerationUnit()));
     }
     else if (type == "density") {
         Density base_value(value);
-        return QString::number(
-            base_value.to(PM->getMassUnit() / (PM->getDistanceUnit() * PM->getDistanceUnit() * PM->getDistanceUnit())));
+        return QString::number(base_value.to(PreferencesManager::getInstance()->getMassUnit() /
+                                             (PreferencesManager::getInstance()->getDistanceUnit() *
+                                              PreferencesManager::getInstance()->getDistanceUnit() *
+                                              PreferencesManager::getInstance()->getDistanceUnit())));
     }
     else if (type == "ang_vel") {
         AngularVelocity base_value(value);
-        return QString::number(base_value.to(PM->getAngleUnit() / PM->getTimeUnit()));
+        return QString::number(base_value.to(PreferencesManager::getInstance()->getAngleUnit() /
+                                             PreferencesManager::getInstance()->getTimeUnit()));
     }
     else if (type == "time") {
         Time base_value(value);
-        return QString::number(base_value.to(PM->getTimeUnit()));
+        return QString::number(base_value.to(PreferencesManager::getInstance()->getTimeUnit()));
     }
     else if (type == "temperature") {
         Temperature base_value(value);
-        return QString::number(base_value.to(PM->getTemperatureUnit()));
+        return QString::number(base_value.to(PreferencesManager::getInstance()->getTemperatureUnit()));
     }
     else if (type == "angle") {
         Angle base_value(value);
-        return QString::number(base_value.to(PM->getAngleUnit()));
+        return QString::number(base_value.to(PreferencesManager::getInstance()->getAngleUnit()));
     }
     else if (type == "area") {
         Area base_value(value);
-        return QString::number(base_value.to(PM->getDistanceUnit() * PM->getDistanceUnit()));
+        return QString::number(base_value.to(PreferencesManager::getInstance()->getDistanceUnit() *
+                                             PreferencesManager::getInstance()->getDistanceUnit()));
     }
     else {
         return QString::number(value);

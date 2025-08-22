@@ -1,21 +1,7 @@
-#ifndef IMAGESLICER_H
-#define IMAGESLICER_H
+#pragma once
 
 #include "geometry/mesh/mesh_base.h"
 #include "threading/traditional_ast.h"
-
-#undef emit
-#include <vtkCellArray.h>
-#include <vtkImageData.h>
-#include <vtkImageStencilToImage.h>
-#include <vtkLine.h>
-#include <vtkNew.h>
-#include <vtkPNGWriter.h>
-#include <vtkPoints.h>
-#include <vtkPolyData.h>
-#include <vtkPolyDataToImageStencil.h>
-#include <vtkSmartPointer.h>
-#define emit
 
 namespace ORNL {
 /*!
@@ -85,7 +71,6 @@ class ImageSlicer : public TraditionalAST {
     void createImageStencilVTK(QVector<PolygonListAndColor> geometryAndColor, int layer, double xResolution,
                                double yResolution, int gridWidth, int gridHeight);
 
-
     //! \brief Create a parallel for loop with batching behavior similar to OpenMP
     //! \param start: Starting index for the loop
     //! \param end: Ending index for the loop
@@ -97,5 +82,3 @@ class ImageSlicer : public TraditionalAST {
     int m_total_digits = 7;
 };
 } // namespace ORNL
-
-#endif // IMAGESLICER_H

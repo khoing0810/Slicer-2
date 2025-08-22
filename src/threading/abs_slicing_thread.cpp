@@ -1,44 +1,39 @@
-// Main Module
 #include "threading/abs_slicing_thread.h"
 
-// Qt
-#include <QApplication>
-
-// Local
+#include "QApplication"
+#include "gcode/gcode_meta.h"
+#include "gcode/writers/adamantine_writer.h"
+#include "gcode/writers/aerobasic_writer.h"
+#include "gcode/writers/aml3d_writer.h"
+#include "gcode/writers/cincinnati_writer.h"
+#include "gcode/writers/dmg_dmu_writer.h"
+#include "gcode/writers/five_axis_marlin_writer.h"
+#include "gcode/writers/gkn_writer.h"
+#include "gcode/writers/gudel_writer.h"
+#include "gcode/writers/haas_metric_no_comments_writer.h"
+#include "gcode/writers/haas_writer.h"
+#include "gcode/writers/hurco_writer.h"
+#include "gcode/writers/ingersoll_writer.h"
+#include "gcode/writers/kraussmaffei_writer.h"
+#include "gcode/writers/mach4_writer.h"
+#include "gcode/writers/marlin_pellet_writer.h"
+#include "gcode/writers/marlin_writer.h"
+#include "gcode/writers/mazak_writer.h"
+#include "gcode/writers/meld_writer.h"
+#include "gcode/writers/meltio_writer.h"
+#include "gcode/writers/mvp_writer.h"
+#include "gcode/writers/okuma_writer.h"
+#include "gcode/writers/ornl_writer.h"
+#include "gcode/writers/reprap_writer.h"
+#include "gcode/writers/romi_fanuc_writer.h"
+#include "gcode/writers/rpbf_writer.h"
+#include "gcode/writers/sandia_writer.h"
+#include "gcode/writers/siemens_writer.h"
+#include "gcode/writers/skybaam_writer.h"
+#include "gcode/writers/thermwood_writer.h"
+#include "gcode/writers/tormach_writer.h"
 #include "managers/session_manager.h"
 #include "slicing/slicing_utilities.h"
-
-#include <gcode/gcode_meta.h>
-#include <gcode/writers/adamantine_writer.h>
-#include <gcode/writers/aerobasic_writer.h>
-#include <gcode/writers/aml3d_writer.h>
-#include <gcode/writers/cincinnati_writer.h>
-#include <gcode/writers/dmg_dmu_writer.h>
-#include <gcode/writers/five_axis_marlin_writer.h>
-#include <gcode/writers/gkn_writer.h>
-#include <gcode/writers/gudel_writer.h>
-#include <gcode/writers/haas_metric_no_comments_writer.h>
-#include <gcode/writers/haas_writer.h>
-#include <gcode/writers/hurco_writer.h>
-#include <gcode/writers/ingersoll_writer.h>
-#include <gcode/writers/kraussmaffei_writer.h>
-#include <gcode/writers/mach4_writer.h>
-#include <gcode/writers/marlin_pellet_writer.h>
-#include <gcode/writers/marlin_writer.h>
-#include <gcode/writers/mazak_writer.h>
-#include <gcode/writers/meld_writer.h>
-#include <gcode/writers/meltio_writer.h>
-#include <gcode/writers/mvp_writer.h>
-#include <gcode/writers/okuma_writer.h>
-#include <gcode/writers/ornl_writer.h>
-#include <gcode/writers/reprap_writer.h>
-#include <gcode/writers/romi_fanuc_writer.h>
-#include <gcode/writers/rpbf_writer.h>
-#include <gcode/writers/sandia_writer.h>
-#include <gcode/writers/siemens_writer.h>
-#include <gcode/writers/skybaam_writer.h>
-#include <gcode/writers/thermwood_writer.h>
-#include <gcode/writers/tormach_writer.h>
 
 namespace ORNL {
 AbstractSlicingThread::AbstractSlicingThread(QString outputLocation, bool skipGcode)
@@ -67,7 +62,7 @@ int AbstractSlicingThread::getMaxBound() { return m_max; }
 qint64 AbstractSlicingThread::getTimeElapsed() { return m_elapsed_time; }
 
 void AbstractSlicingThread::setGcodeOutput(QString output) {
-    m_syntax = GSM->getGlobal()->setting<GcodeSyntax>(Constants::PrinterSettings::MachineSetup::kSyntax);
+    m_syntax = GSM->getGlobal()->setting<GcodeSyntax>(PRS::MachineSetup::kSyntax);
     switch (m_syntax) {
         case GcodeSyntax::k5AxisMarlin:
             m_base = QSharedPointer<FiveAxisMarlinWriter>(
@@ -133,7 +128,7 @@ void AbstractSlicingThread::setGcodeOutput(QString output) {
             m_base = QSharedPointer<OkumaWriter>(new OkumaWriter(GcodeMetaList::HaasMetricMeta, GSM->getGlobal()));
             break;
         case GcodeSyntax::kORNL:
-            m_base = QSharedPointer<ORNLWriter>(new ORNLWriter(GcodeMetaList::ORNLMeta, GSM->getGlobal()));
+            m_base = QSharedPointer<ORNLWriter>(new ORNLWriter(GcodeMetaList::ORNLMetricMeta, GSM->getGlobal()));
             break;
         case GcodeSyntax::kRomiFanuc:
             m_base =

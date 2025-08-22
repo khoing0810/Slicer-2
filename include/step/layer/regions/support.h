@@ -1,7 +1,5 @@
-#ifndef SUPPORT_H
-#define SUPPORT_H
+#pragma once
 
-// Local
 #include "step/layer/regions/region_base.h"
 
 namespace ORNL {
@@ -50,5 +48,3 @@ class Support : public RegionBase {
     QVector<Polyline> m_computed_infill_geometry;
 };
 } // namespace ORNL
-
-#endif // SUPPORT_H

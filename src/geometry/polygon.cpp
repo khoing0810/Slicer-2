@@ -1,7 +1,5 @@
-// Main Module
 #include "geometry/polygon.h"
 
-// Local
 #include "geometry/point.h"
 #include "geometry/polygon_list.h"
 #include "geometry/polyline.h"
@@ -249,6 +247,18 @@ Polyline Polygon::toPolyline() {
     newLine.push_back(this->at(0));
 
     return newLine;
+}
+
+QVector<Polyline> Polygon::getEdges() const {
+    QVector<Polyline> edges;
+
+    for (size_t i = 0; i < size(); ++i) {
+        const Point& start = this->at(i);
+        const Point& end = this->at((i + 1) % size());
+        edges += Polyline({start, end});
+    }
+
+    return edges;
 }
 
 PolygonList Polygon::operator+(const PolygonList& rhs) {

@@ -1,7 +1,5 @@
-#ifndef INFILL_SECTOR_H
-#define INFILL_SECTOR_H
+#pragma once
 
-// Local
 #include "geometry/segments/line.h"
 #include "step/layer/regions/region_base.h"
 
@@ -67,5 +65,3 @@ class InfillSector : public RegionBase {
     Point m_start_vec;
 };
 } // namespace ORNL
-
-#endif // INFILL_SECTOR_H

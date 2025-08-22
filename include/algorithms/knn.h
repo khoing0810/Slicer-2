@@ -1,10 +1,8 @@
-#ifndef KNN_H
-#define KNN_H
+#pragma once
 
+#include "QVector"
 #include "algorithm_base.h"
 #include "geometry/point.h"
-
-#include <QVector>
 
 namespace ORNL {
 /*!
@@ -95,4 +93,3 @@ class kNN : public AlgorithmBase {
                int* knn_index);
 };
 } // namespace ORNL
-#endif // KNN_H

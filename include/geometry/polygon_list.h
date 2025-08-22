@@ -1,23 +1,16 @@
-#ifndef POLYGONLIST_H
-#define POLYGONLIST_H
+#pragma once
 
-// Qt
-#include <QVector>
-
-// Libraries
+#include "QVector"
 #include "clipper.hpp"
+#include "geometry/polygon.h"
+#include "geometry/polyline.h"
+
+#include <queue>
 
 // Single Path Lib
 #ifdef HAVE_SINGLE_PATH
     #include "single_path/geometry/polygon_list.h"
 #endif
-
-// Local
-#include "geometry/polygon.h"
-#include "geometry/polyline.h"
-
-// Queue
-#include <queue>
 
 namespace ORNL {
 class Point;
@@ -73,7 +66,7 @@ class PolygonList : public QVector<Polygon> {
      * Returns false if outside, true if inside; if the point lies exactly
      * on the border, will return \p border_result.
      */
-    bool inside(Point p, bool border_result = false);
+    bool inside(Point p, bool border_result = false) const;
 
     /*!
      * \brief Implements monotone chain convex hull algorithm
@@ -156,6 +149,12 @@ class PolygonList : public QVector<Polygon> {
 
     // Get the bounding box for all polygons in list list.
     QRect boundingRect() const;
+
+    /**
+     * @brief Returns the edges of the polygons in the list.
+     * @return QVector of Polyline representing the edges of the polygons.
+     */
+    QVector<Polyline> getEdges() const;
 
   private:
     /*!
@@ -419,4 +418,3 @@ class PolygonList : public QVector<Polygon> {
 }; // class PolygonList
 
 } // namespace ORNL
-#endif // POLYGONS_H

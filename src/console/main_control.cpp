@@ -3,6 +3,7 @@
 #include "gcode/gcode_meta.h"
 #include "managers/preferences_manager.h"
 #include "managers/session_manager.h"
+#include "threading/gcode_loader.h"
 #include "threading/gcode_rpbf_saver.h"
 
 namespace ORNL {
@@ -24,23 +25,30 @@ void MainControl::continueStartup() {
 }
 
 void MainControl::run() {
+
     if (m_options->contains(Constants::ConsoleOptionStrings::kShiftPartsOnLoad)) {
-        if (m_options->setting<bool>(Constants::ConsoleOptionStrings::kShiftPartsOnLoad))
-            PM->setFileShiftPreference(PreferenceChoice::kPerformAutomatically);
-        else
-            PM->setFileShiftPreference(PreferenceChoice::kSkipAutomatically);
+        if (m_options->setting<bool>(Constants::ConsoleOptionStrings::kShiftPartsOnLoad)) {
+            PreferencesManager::getInstance()->setFileShiftPreference(PreferenceChoice::kPerformAutomatically);
+        }
+        else {
+            PreferencesManager::getInstance()->setFileShiftPreference(PreferenceChoice::kSkipAutomatically);
+        }
     }
     if (m_options->contains(Constants::ConsoleOptionStrings::kAlignParts)) {
-        if (m_options->setting<bool>(Constants::ConsoleOptionStrings::kAlignParts))
-            PM->setAlignPreference(PreferenceChoice::kPerformAutomatically);
-        else
-            PM->setAlignPreference(PreferenceChoice::kSkipAutomatically);
+        if (m_options->setting<bool>(Constants::ConsoleOptionStrings::kAlignParts)) {
+            PreferencesManager::getInstance()->setAlignPreference(PreferenceChoice::kPerformAutomatically);
+        }
+        else {
+            PreferencesManager::getInstance()->setAlignPreference(PreferenceChoice::kSkipAutomatically);
+        }
     }
-    if (m_options->contains(Constants::ConsoleOptionStrings::kUseImplicitTransforms))
-        PM->setUseImplicitTransforms(m_options->setting<bool>(Constants::ConsoleOptionStrings::kUseImplicitTransforms));
+    if (m_options->contains(Constants::ConsoleOptionStrings::kUseImplicitTransforms)) {
+        PreferencesManager::getInstance()->setUseImplicitTransforms(
+            m_options->setting<bool>(Constants::ConsoleOptionStrings::kUseImplicitTransforms));
+    }
 
-    if (static_cast<SlicerType>(GSM->getGlobal()->setting<int>(
-            Constants::ExperimentalSettings::PrinterConfig::kSlicerType)) == SlicerType::kImageSlice)
+    if (static_cast<SlicerType>(GSM->getGlobal()->setting<int>(ES::PrinterConfig::kSlicerType)) ==
+        SlicerType::kImageSlice)
         CSM->setDefaultGcodeDir(m_options->setting<QString>(Constants::ConsoleOptionStrings::kOutputLocation));
 
     int stlCount = m_options->setting<int>(Constants::ConsoleOptionStrings::kInputStlCount);
@@ -91,11 +99,10 @@ void MainControl::loadComplete() {
 }
 
 void MainControl::sliceComplete(QString filepath, bool alterFile) {
-    if (static_cast<SlicerType>(GSM->getGlobal()->setting<int>(
-            Constants::ExperimentalSettings::PrinterConfig::kSlicerType)) != SlicerType::kImageSlice) {
+    if (static_cast<SlicerType>(GSM->getGlobal()->setting<int>(ES::PrinterConfig::kSlicerType)) !=
+        SlicerType::kImageSlice) {
         if (m_options->setting<bool>(Constants::ConsoleOptionStrings::kRealTimeMode)) {
-            auto meta = GcodeMetaList::createMapping()[GSM->getGlobal()->setting<int>(
-                Constants::ExperimentalSettings::PrinterConfig::kSlicerType)];
+            auto meta = GcodeMetaList::createMapping()[GSM->getGlobal()->setting<int>(ES::PrinterConfig::kSlicerType)];
             updateOutputInformation(filepath, meta);
             gcodeParseComplete();
         }
@@ -138,14 +145,11 @@ void MainControl::gcodeParseComplete() {
     }
 
     if (m_selected_meta == GcodeMetaList::RPBFMeta &&
-        static_cast<SlicerType>(GSM->getGlobal()->setting<int>(
-            Constants::ExperimentalSettings::PrinterConfig::kSlicerType)) != SlicerType::kRealTimeRPBF) {
-        Angle clockInRad =
-            GSM->getGlobal()->setting<Angle>(Constants::ExperimentalSettings::RPBFSlicing::kClockingAngle);
-        bool use_sector_offsetting =
-            GSM->getGlobal()->setting<bool>(Constants::ExperimentalSettings::RPBFSlicing::kSectorOffsettingEnable);
-        Angle sector_width =
-            GSM->getGlobal()->setting<Angle>(Constants::ExperimentalSettings::RPBFSlicing::kSectorSize);
+        static_cast<SlicerType>(GSM->getGlobal()->setting<int>(ES::PrinterConfig::kSlicerType)) !=
+            SlicerType::kRealTimeRPBF) {
+        Angle clockInRad = GSM->getGlobal()->setting<Angle>(ES::RPBFSlicing::kClockingAngle);
+        bool use_sector_offsetting = GSM->getGlobal()->setting<bool>(ES::RPBFSlicing::kSectorOffsettingEnable);
+        Angle sector_width = GSM->getGlobal()->setting<Angle>(ES::RPBFSlicing::kSectorSize);
 
         GCodeRPBFSaver* saver = new GCodeRPBFSaver(m_temp_location, filepath, gcodeFileName, text, m_selected_meta,
                                                    clockInRad(), use_sector_offsetting, sector_width);

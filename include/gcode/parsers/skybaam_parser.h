@@ -1,13 +1,11 @@
-//Skybaam dedicated parser currently unnecessary as it conforms to cincinnati parser
-//only current difference is that G4 uses S instead of P parameter, G4 currently accepts
-//multiple valid parameters
+#pragma once
+
+// Skybaam dedicated parser currently unnecessary as it conforms to cincinnati parser
+// only current difference is that G4 uses S instead of P parameter, G4 currently accepts
+// multiple valid parameters
 #if 0
-#ifndef SKYBAAM_H
-#define SKYBAAM_H
 
-//! \file skybaam_parser.h
-
-#include "common_parser.h"
+    #include "common_parser.h"
 
 namespace ORNL
 {
@@ -85,5 +83,5 @@ namespace ORNL
         double m_voltage_control_value;
     };
 }  // namespace ORNL
-#endif  // SKYBAAM_H
+
 #endif

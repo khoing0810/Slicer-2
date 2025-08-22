@@ -1,7 +1,4 @@
-#ifndef SANDIA_WRITER_H
-#define SANDIA_WRITER_H
-
-//! \file ornl_writer.h
+#pragma once
 
 #include "gcode/gcode_meta.h"
 #include "gcode/writers/writer_base.h"
@@ -110,4 +107,3 @@ class SandiaWriter : public WriterBase {
 
 }; // class SANDIAWriter
 } // namespace ORNL
-#endif // SANDIA_WRITER_H

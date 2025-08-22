@@ -1,10 +1,6 @@
-// Header
 #include "optimizers/polyline_order_optimizer.h"
 
-// Qt
-#include <QRandomGenerator>
-
-// Local
+#include "QRandomGenerator"
 #include "geometry/polygon_list.h"
 #include "optimizers/point_order_optimizer.h"
 #include "utilities/mathutils.h"
@@ -443,26 +439,24 @@ void PolylineOrderOptimizer::levelOrder(QSharedPointer<TopologicalNode> root) {
     --m_topo_level;
 }
 
-Polyline PolylineOrderOptimizer::linkSpiralPolyline2D(bool last_spiral, Distance layerHeight, PointOrderOptimization pointOrder) {
+Polyline PolylineOrderOptimizer::linkSpiralPolyline2D(bool last_spiral, Distance layerHeight,
+                                                      PointOrderOptimization pointOrder) {
     int polylineIndex = findShortestOrLongestDistance();
     Polyline newPolyline = m_polylines[polylineIndex];
     m_polylines.removeAt(polylineIndex);
     int pointIndex = PointOrderOptimizer::linkToPoint(m_current_location, newPolyline, m_layer_num,
-                                                                       PointOrderOptimization::kNextClosest, false, 0, 0, false, 0);
+                                                      PointOrderOptimization::kNextClosest, false, 0, 0, false, 0);
 
     // Define which point to start layer one - all other layers must use next closest
-    if (m_layer_num == 0)
-    {
-        if (pointOrder == PointOrderOptimization::kCustomPoint)
-        {
+    if (m_layer_num == 0) {
+        if (pointOrder == PointOrderOptimization::kCustomPoint) {
             Point startOverride = m_point_override_location;
-            pointIndex = PointOrderOptimizer::linkToPoint(startOverride, newPolyline, m_layer_num,
-                                                          pointOrder, false, 0, 0, false, 0);
+            pointIndex = PointOrderOptimizer::linkToPoint(startOverride, newPolyline, m_layer_num, pointOrder, false, 0,
+                                                          0, false, 0);
         }
-        else
-        {
-            pointIndex = PointOrderOptimizer::linkToPoint(m_current_location, newPolyline, m_layer_num,
-                                                      pointOrder, false, 0, 0, false, 0);
+        else {
+            pointIndex = PointOrderOptimizer::linkToPoint(m_current_location, newPolyline, m_layer_num, pointOrder,
+                                                          false, 0, 0, false, 0);
         }
     }
 

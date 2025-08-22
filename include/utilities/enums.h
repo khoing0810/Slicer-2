@@ -1,15 +1,10 @@
-#ifndef ENUMS_H
-#define ENUMS_H
+#pragma once
 
-//! \file enums.h
-
+#include "QMessageBox"
 #include "constants.h"
 #include "exceptions/exceptions.h"
+#include "nlohmann/json.hpp"
 #include "utilities/qt_json_conversion.h"
-
-#include <QMessageBox>
-
-#include <nlohmann/json.hpp>
 
 using json = fifojson;
 
@@ -168,73 +163,73 @@ enum class GcodeSyntax : uint8_t {
 inline QString toString(GcodeSyntax syntax) {
     switch (syntax) {
         case GcodeSyntax::k5AxisMarlin:
-            return Constants::PrinterSettings::SyntaxString::k5AxisMarlin;
+            return PRS::SyntaxString::k5AxisMarlin;
         case GcodeSyntax::kAML3D:
-            return Constants::PrinterSettings::SyntaxString::kAML3D;
+            return PRS::SyntaxString::kAML3D;
         case GcodeSyntax::kBeam:
-            return Constants::PrinterSettings::SyntaxString::kBeam;
+            return PRS::SyntaxString::kBeam;
         case GcodeSyntax::kCincinnati:
-            return Constants::PrinterSettings::SyntaxString::kCincinnati;
+            return PRS::SyntaxString::kCincinnati;
         case GcodeSyntax::kDmgDmu:
-            return Constants::PrinterSettings::SyntaxString::kDmgDmu;
+            return PRS::SyntaxString::kDmgDmu;
         case GcodeSyntax::kGKN:
-            return Constants::PrinterSettings::SyntaxString::kGKN;
+            return PRS::SyntaxString::kGKN;
         case GcodeSyntax::kGudel:
-            return Constants::PrinterSettings::SyntaxString::kGudel;
+            return PRS::SyntaxString::kGudel;
         case GcodeSyntax::kHaasInch:
-            return Constants::PrinterSettings::SyntaxString::kHaasInch;
+            return PRS::SyntaxString::kHaasInch;
         case GcodeSyntax::kHaasMetric:
-            return Constants::PrinterSettings::SyntaxString::kHaasMetric;
+            return PRS::SyntaxString::kHaasMetric;
         case GcodeSyntax::kHaasMetricNoComments:
-            return Constants::PrinterSettings::SyntaxString::kHaasMetricNoComments;
+            return PRS::SyntaxString::kHaasMetricNoComments;
         case GcodeSyntax::kHurco:
-            return Constants::PrinterSettings::SyntaxString::kHurco;
+            return PRS::SyntaxString::kHurco;
         case GcodeSyntax::kIngersoll:
-            return Constants::PrinterSettings::SyntaxString::kIngersoll;
+            return PRS::SyntaxString::kIngersoll;
         case GcodeSyntax::kKraussMaffei:
-            return Constants::PrinterSettings::SyntaxString::kKraussMaffei;
+            return PRS::SyntaxString::kKraussMaffei;
         case GcodeSyntax::kMarlin:
-            return Constants::PrinterSettings::SyntaxString::kMarlin;
+            return PRS::SyntaxString::kMarlin;
         case GcodeSyntax::kMarlinPellet:
-            return Constants::PrinterSettings::SyntaxString::kMarlinPellet;
+            return PRS::SyntaxString::kMarlinPellet;
         case GcodeSyntax::kMazak:
-            return Constants::PrinterSettings::SyntaxString::kMazak;
+            return PRS::SyntaxString::kMazak;
         case GcodeSyntax::kMeld:
-            return Constants::PrinterSettings::SyntaxString::kMeld;
+            return PRS::SyntaxString::kMeld;
         case GcodeSyntax::kMeltio:
-            return Constants::PrinterSettings::SyntaxString::kMeltio;
+            return PRS::SyntaxString::kMeltio;
         case GcodeSyntax::kMVP:
-            return Constants::PrinterSettings::SyntaxString::kMVP;
+            return PRS::SyntaxString::kMVP;
         case GcodeSyntax::kOkuma:
-            return Constants::PrinterSettings::SyntaxString::kOkuma;
+            return PRS::SyntaxString::kOkuma;
         case GcodeSyntax::kORNL:
-            return Constants::PrinterSettings::SyntaxString::kORNL;
+            return PRS::SyntaxString::kORNL;
         case GcodeSyntax::kRomiFanuc:
-            return Constants::PrinterSettings::SyntaxString::kRomiFanuc;
+            return PRS::SyntaxString::kRomiFanuc;
         case GcodeSyntax::kRPBF:
-            return Constants::PrinterSettings::SyntaxString::kRPBF;
+            return PRS::SyntaxString::kRPBF;
         case GcodeSyntax::kSandia:
-            return Constants::PrinterSettings::SyntaxString::kSandia;
+            return PRS::SyntaxString::kSandia;
         case GcodeSyntax::kSiemens:
-            return Constants::PrinterSettings::SyntaxString::kSiemens;
+            return PRS::SyntaxString::kSiemens;
         case GcodeSyntax::kSkyBaam:
-            return Constants::PrinterSettings::SyntaxString::kSkyBaam;
+            return PRS::SyntaxString::kSkyBaam;
         case GcodeSyntax::kThermwood:
-            return Constants::PrinterSettings::SyntaxString::kThermwood;
+            return PRS::SyntaxString::kThermwood;
         case GcodeSyntax::kTormach:
-            return Constants::PrinterSettings::SyntaxString::kTormach;
+            return PRS::SyntaxString::kTormach;
         case GcodeSyntax::kWolf:
-            return Constants::PrinterSettings::SyntaxString::kWolf;
+            return PRS::SyntaxString::kWolf;
         case GcodeSyntax::kRepRap:
-            return Constants::PrinterSettings::SyntaxString::kRepRap;
+            return PRS::SyntaxString::kRepRap;
         case GcodeSyntax::kMach4:
-            return Constants::PrinterSettings::SyntaxString::kMach4;
+            return PRS::SyntaxString::kMach4;
         case GcodeSyntax::kAeroBasic:
-            return Constants::PrinterSettings::SyntaxString::kAeroBasic;
+            return PRS::SyntaxString::kAeroBasic;
         case GcodeSyntax::kAdamantine:
-            return Constants::PrinterSettings::SyntaxString::kAdamantine;
+            return PRS::SyntaxString::kAdamantine;
         default:
-            return Constants::PrinterSettings::SyntaxString::kCommon;
+            return PRS::SyntaxString::kCommon;
     }
 }
 /*!
@@ -877,4 +872,3 @@ enum class TormachMode : uint8_t { kMode21 = 0, kMode40 = 1, kMode102 = 2, kMode
 enum class PolygonPartition : uint8_t { kConvex = 0, kMonoX = 1, kMonoY = 2 };
 
 } // namespace ORNL
-#endif // ENUMS_H

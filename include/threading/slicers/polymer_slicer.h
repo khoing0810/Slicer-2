@@ -1,12 +1,7 @@
-#ifndef POLYMERSLICER_H
-#define POLYMERSLICER_H
+#pragma once
 
-// Local
 #include "step/global_layer.h"
 #include "threading/traditional_ast.h"
-
-// #include "slicing/preprocessor.h"
-// #include "slicing/buffered_slicer.h"
 
 namespace ORNL {
 /*!
@@ -115,5 +110,3 @@ class PolymerSlicer : public TraditionalAST {
     uint m_layer_num;
 };
 } // namespace ORNL
-
-#endif // POLYMERSLICER_H

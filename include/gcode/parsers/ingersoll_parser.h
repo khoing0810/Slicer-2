@@ -1,5 +1,4 @@
-#ifndef INGERSOLLPARSER_H
-#define INGERSOLLPARSER_H
+#pragma once
 
 #include "common_parser.h"
 #include "gcode/gcode_meta.h"
@@ -64,4 +63,3 @@ class IngersollParser : public CommonParser {
     QStringList &m_lines_copy, &m_upper_lines_copy;
 };
 } // namespace ORNL
-#endif // INGERSOLPARSER_H

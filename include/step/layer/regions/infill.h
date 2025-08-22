@@ -1,7 +1,5 @@
-#ifndef INFILL_H
-#define INFILL_H
+#pragma once
 
-// Local
 #include "step/layer/regions/region_base.h"
 
 namespace ORNL {
@@ -56,19 +54,6 @@ class Infill : public RegionBase {
     //! \return if they are the same
     bool settingsSame(QSharedPointer<SettingsBase> a, QSharedPointer<SettingsBase> b);
 
-    //! \brief Applies external grid to infill segments
-    //! \param seg: Segment to evaluate in grid
-    //! \return vector of new segments generated from original segment after applying grid
-    QVector<QSharedPointer<SegmentBase>> applyGrid(QSharedPointer<SegmentBase> seg);
-
-    //! \brief Calculates average grid value for current segment and returns recipe index
-    //! \param start: Start point of segment
-    //! \param end: End point of segment
-    //! \param xMax: Max x value of grid
-    //! \param yMax: Max y value of grid
-    //! \return recipe index for average grid value
-    int getBlendVal(Point start, Point end, int xMax, int yMax);
-
     //! \brief Holds the computed geometry before it is converted into paths
     QVector<QVector<Polyline>> m_computed_geometry;
 
@@ -82,5 +67,3 @@ class Infill : public RegionBase {
     uint m_layer_count;
 };
 } // namespace ORNL
-
-#endif // INFILL_H

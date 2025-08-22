@@ -1,7 +1,5 @@
-#ifndef LINE_H
-#define LINE_H
+#pragma once
 
-// Local
 #include "geometry/segment_base.h"
 
 namespace ORNL {
@@ -29,6 +27,8 @@ class LineSegment : public SegmentBase {
     //! \brief returns minimum z-coordinate of the line
     float getMinZ() override;
 };
-} // namespace ORNL
 
-#endif // LINE_H
+// Type definitions for shared pointers and lists of LineSegment
+using LSegmentPtr = QSharedPointer<LineSegment>;
+using LSegmentList = QVector<LSegmentPtr>;
+} // namespace ORNL

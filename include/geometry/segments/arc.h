@@ -1,7 +1,5 @@
-#ifndef ARC_H
-#define ARC_H
+#pragma once
 
-// Local
 #include "configs/settings_base.h"
 #include "geometry/segment_base.h"
 
@@ -110,5 +108,3 @@ class ArcSegment : public SegmentBase {
     bool m_ccw;
 };
 } // namespace ORNL
-
-#endif // ARC_H

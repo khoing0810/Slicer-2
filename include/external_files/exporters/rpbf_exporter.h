@@ -1,13 +1,10 @@
-#ifndef RPBFEXPORTER_H
-#define RPBFEXPORTER_H
+#pragma once
 
+#include "QRegularExpression"
+#include "QString"
 #include "gcode/gcode_meta.h"
 #include "geometry/point.h"
 #include "units/unit.h"
-
-#include <QRegularExpression>
-#include <QRegularExpression>
-#include <QString>
 
 namespace ORNL {
 //! \class RPBFExporter
@@ -84,5 +81,3 @@ class RPBFExporter {
     QString m_path;
 };
 } // namespace ORNL
-
-#endif // RPBFEXPORTER_H

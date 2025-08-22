@@ -1,26 +1,18 @@
 #include "threading/gcode_simulation_output.h"
 
-// Local
-#include <geometry/point.h>
+#include "QDir"
+#include "QFile"
+#include "QRegularExpression"
+#include "QStringBuilder"
+#include "QStringList"
+#include "QTextStream"
 #include "managers/settings/settings_manager.h"
 
-// Qt
-#include <QFile>
-#include <QTextStream>
-#include <QStringBuilder>
-#include <QRegularExpression>
-#include <QDir>
-#include <QStringList>
-
-namespace ORNL
-{
-GCodeSimulationOutput::GCodeSimulationOutput(const QString& temp_location,
-                                             const QString& path,
-                                             const QString& filename,
-                                             const QString& text,
-                                             const GcodeMeta& meta) :
-    m_temp_location(temp_location), m_path(path), m_filename(filename), m_text(text), m_selected_meta(meta) {
-    //NOP
+namespace ORNL {
+GCodeSimulationOutput::GCodeSimulationOutput(const QString& temp_location, const QString& path, const QString& filename,
+                                             const QString& text, const GcodeMeta& meta)
+    : m_temp_location(temp_location), m_path(path), m_filename(filename), m_text(text), m_selected_meta(meta) {
+    // NOP
 }
 
 void GCodeSimulationOutput::run() {
@@ -29,9 +21,12 @@ void GCodeSimulationOutput::run() {
     QStringList lines = m_text.split(new_line);
     QString g0("G0"), g1("G1"), m3("M3"), m5("M5"), m64("M64"), comma_space(", ");
     QString xval("0"), yval("0"), zval, wval, sval("0"), extruding("0"), velocity, rapid_velocity;
-    zval = QString::number(GSM->getGlobal()->setting<Distance>(Constants::PrinterSettings::Dimensions::kZMax).to(m_selected_meta.m_distance_unit), 'f', 4);
-    wval = QString::number(GSM->getGlobal()->setting<Distance>(Constants::PrinterSettings::Dimensions::kWMax).to(m_selected_meta.m_distance_unit), 'f', 4);
-    rapid_velocity = QString::number(GSM->getGlobal()->setting<Velocity>(Constants::ProfileSettings::Travel::kSpeed).to(m_selected_meta.m_velocity_unit), 'f', 4);
+    zval = QString::number(
+        GSM->getGlobal()->setting<Distance>(PRS::Dimensions::kZMax).to(m_selected_meta.m_distance_unit), 'f', 4);
+    wval = QString::number(
+        GSM->getGlobal()->setting<Distance>(PRS::Dimensions::kWMax).to(m_selected_meta.m_distance_unit), 'f', 4);
+    rapid_velocity = QString::number(
+        GSM->getGlobal()->setting<Velocity>(PS::Travel::kSpeed).to(m_selected_meta.m_velocity_unit), 'f', 4);
 
     m_current_x = 0;
     m_current_y = 0;
@@ -59,7 +54,7 @@ void GCodeSimulationOutput::run() {
 
     QString line;
 
-    for(size_t i = 0; i < lines.size(); i++) {
+    for (size_t i = 0; i < lines.size(); i++) {
         line = lines[i];
         sval = "1"; // reset sval
 
@@ -70,14 +65,15 @@ void GCodeSimulationOutput::run() {
 
         // Extrusion on/off needs to appear in the simulation txt file 1 line before it happens in the g-code\
         // Look at the next line to determine the proper value for the "extruding" flag
-        if (i + 1 < lines.size() && lines[i + 1].startsWith(g1)) //Check next motion to see if extrusion turns off with S0
+        if (i + 1 < lines.size() &&
+            lines[i + 1].startsWith(g1)) // Check next motion to see if extrusion turns off with S0
         {
             QString temp = lines[i + 1].mid(0, line.indexOf(m_selected_meta.m_comment_starting_delimiter));
             QVector<QString> params = temp.split(space);
 
             if (params[0] == g1) {
                 for (size_t i = 1, end = params.size(); i < end; i++) {
-                    if(params[i].startsWith(s)) {
+                    if (params[i].startsWith(s)) {
                         sval = params[i].mid(1);
                     }
                 }
@@ -120,7 +116,8 @@ void GCodeSimulationOutput::run() {
 
             calculateTime(xval, yval, zval, wval, rapid_velocity);
 
-            out << m_current_time() << comma_space % xval % comma_space % yval % comma_space << m_current_z() << comma_space % extruding % new_line;
+            out << m_current_time() << comma_space % xval % comma_space % yval % comma_space << m_current_z()
+                << comma_space % extruding % new_line;
         }
         else if (line.startsWith(g1)) {
             QString temp = line.mid(0, line.indexOf(m_selected_meta.m_comment_starting_delimiter));
@@ -156,19 +153,16 @@ void GCodeSimulationOutput::run() {
 
             calculateTime(xval, yval, zval, wval, velocity);
 
-            out << m_current_time() << comma_space % xval % comma_space % yval % comma_space << m_current_z() << comma_space % extruding % new_line;
+            out << m_current_time() << comma_space % xval % comma_space % yval % comma_space << m_current_z()
+                << comma_space % extruding % new_line;
         }
     }
 
     file.close();
 }
 
-void GCodeSimulationOutput::calculateTime(const QString& x,
-                                          const QString& y,
-                                          const QString& z,
-                                          const QString& w,
-                                          const QString& f)
-{
+void GCodeSimulationOutput::calculateTime(const QString& x, const QString& y, const QString& z, const QString& w,
+                                          const QString& f) {
     Distance dist = 0;
     Distance temp_x = x.toDouble();
     Distance temp_y = y.toDouble();
@@ -197,7 +191,9 @@ void GCodeSimulationOutput::calculateTime(const QString& x,
     if (dx == 0 && dy == 0 && dz == 0 && dw != 0) {
         dist = dw;
         if (m_is_g0) {
-            temp_f = GSM->getGlobal()->setting<Velocity>(Constants::PrinterSettings::MachineSpeed::kWTableSpeed).to(m_selected_meta.m_velocity_unit);
+            temp_f = GSM->getGlobal()
+                         ->setting<Velocity>(PRS::MachineSpeed::kWTableSpeed)
+                         .to(m_selected_meta.m_velocity_unit);
         }
         // Update acceleration for W table moves which only exist on the CI syntax, so units are in/s^2
         current_accel = 7.87;
@@ -206,7 +202,8 @@ void GCodeSimulationOutput::calculateTime(const QString& x,
     else if (dx == 0 && dy == 0 && dz != 0 && dw == 0) {
         dist = dz;
         if (m_is_g0) {
-            temp_f = GSM->getGlobal()->setting<Velocity>(Constants::PrinterSettings::MachineSpeed::kZSpeed).to(m_selected_meta.m_velocity_unit);
+            temp_f =
+                GSM->getGlobal()->setting<Velocity>(PRS::MachineSpeed::kZSpeed).to(m_selected_meta.m_velocity_unit);
         }
         // For Z only moves, set acceleration to 200mm/s^2 or 7.87in/s*2
         if (m_use_metric) {
@@ -243,4 +240,4 @@ void GCodeSimulationOutput::calculateTime(const QString& x,
     m_current_z = temp_z + abs(temp_w);
     m_current_w = temp_w;
 }
-}  // namespace ORNL
+} // namespace ORNL

@@ -1,22 +1,20 @@
-#ifndef PARTWIDGET_H
-#define PARTWIDGET_H
+#pragma once
 
+#include "QDoubleSpinBox"
+#include "QHBoxLayout"
+#include "QLabel"
+#include "QListWidget"
+#include "QPropertyAnimation"
+#include "QResizeEvent"
+#include "QTabWidget"
+#include "QToolButton"
+#include "QWidget"
 #include "graphics/view/part_view.h"
 #include "part/part.h"
 #include "widgets/part_widget/model/part_meta_model.h"
 #include "widgets/part_widget/part_control/part_control.h"
 #include "widgets/part_widget/part_toolbar.h"
 #include "widgets/view_controls_toolbar.h"
-
-#include <QDoubleSpinBox>
-#include <QHBoxLayout>
-#include <QLabel>
-#include <QListWidget>
-#include <QPropertyAnimation>
-#include <QResizeEvent>
-#include <QTabWidget>
-#include <QToolButton>
-#include <QWidget>
 
 namespace ORNL {
 /*!
@@ -207,5 +205,3 @@ class PartWidget : public QWidget {
     QSharedPointer<PartMetaModel> m_model;
 };
 } // Namespace ORNL
-
-#endif // PARTWIDGET_H

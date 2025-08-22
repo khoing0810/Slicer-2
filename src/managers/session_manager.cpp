@@ -1,9 +1,14 @@
 
 #include "managers/session_manager.h"
 
+#include "QCoreApplication"
+#include "QStandardPaths"
+#include "QUuid"
 #include "configs/settings_base.h"
 #include "gcode/gcode_meta.h"
 #include "geometry/mesh/mesh_factory.h"
+#include "managers/preferences_manager.h"
+#include "managers/settings/settings_manager.h"
 #include "threading/mesh_loader.h"
 #include "threading/session_loader.h"
 #include "threading/slicers/image_slicer.h"
@@ -12,13 +17,6 @@
 #include "threading/slicers/real_time_rpbf_slicer.h"
 #include "threading/slicers/rpbf_slicer.h"
 #include "utilities/qt_json_conversion.h"
-// Managers
-#include "managers/preferences_manager.h"
-#include "managers/settings/settings_manager.h"
-
-#include <QCoreApplication>
-#include <QStandardPaths>
-#include <QUuid>
 
 namespace ORNL {
 QSharedPointer<SessionManager> SessionManager::m_singleton = QSharedPointer<SessionManager>();
@@ -138,7 +136,7 @@ bool SessionManager::loadModel(QString filename, bool saveLocation, MeshType mt,
     QFileInfo file_info(filename);
 
     if (synchRequired) {
-        auto meshes = MeshLoader::LoadMeshes(filename, mt, mtrx, PM->getImportUnit());
+        auto meshes = MeshLoader::LoadMeshes(filename, mt, mtrx, PreferencesManager::getInstance()->getImportUnit());
         for (auto mesh_data : meshes) {
             addPart(mesh_data.mesh, filename, mt);
             if (!m_models.contains(file_info.fileName()))
@@ -148,7 +146,7 @@ bool SessionManager::loadModel(QString filename, bool saveLocation, MeshType mt,
         }
     }
     else {
-        MeshLoader* loader = new MeshLoader(filename, mt, mtrx, PM->getImportUnit());
+        MeshLoader* loader = new MeshLoader(filename, mt, mtrx, PreferencesManager::getInstance()->getImportUnit());
         connect(loader, &MeshLoader::finished, loader, &MeshLoader::deleteLater);
 
         connect(loader, &MeshLoader::error, this, [this](QString msg) { emit forwardStatusUpdate(msg); });
@@ -249,7 +247,8 @@ void SessionManager::reloadPart(QSharedPointer<PartMetaItem> pm) {
 
     QFileInfo file_info(filename);
 
-    MeshLoader* loader = new MeshLoader(filename, pm->part()->getMeshType(), QMatrix4x4(), PM->getImportUnit());
+    MeshLoader* loader = new MeshLoader(filename, pm->part()->getMeshType(), QMatrix4x4(),
+                                        PreferencesManager::getInstance()->getImportUnit());
 
     connect(loader, &MeshLoader::finished, loader, &MeshLoader::deleteLater);
 
@@ -274,7 +273,8 @@ void SessionManager::replacePart(QSharedPointer<PartMetaItem> pm, QString filena
 
     QFileInfo file_info(filename);
 
-    MeshLoader* loader = new MeshLoader(filename, pm->part()->getMeshType(), QMatrix4x4(), PM->getImportUnit());
+    MeshLoader* loader = new MeshLoader(filename, pm->part()->getMeshType(), QMatrix4x4(),
+                                        PreferencesManager::getInstance()->getImportUnit());
 
     connect(loader, &MeshLoader::finished, loader, &MeshLoader::deleteLater);
 
@@ -481,13 +481,12 @@ bool SessionManager::isBuildMode() {
 bool SessionManager::doSlice() {
     // check current syntax for file suffix that needs to be output
     tempGcodeFile =
-        defaultGcodeFile + GcodeMetaList::SyntaxToMetaHash[(int)GSM->getGlobal()->setting<GcodeSyntax>(
-                                                               Constants::PrinterSettings::MachineSetup::kSyntax)]
-                               .m_file_suffix;
+        defaultGcodeFile +
+        GcodeMetaList::SyntaxToMetaHash[(int)GSM->getGlobal()->setting<GcodeSyntax>(PRS::MachineSetup::kSyntax)]
+            .m_file_suffix;
 
-    SlicerType type = static_cast<SlicerType>(
-        GSM->getGlobal()->setting<int>(Constants::ExperimentalSettings::PrinterConfig::kSlicerType));
-    m_sensor_files_generated = GSM->getGlobal()->setting<bool>(Constants::ProfileSettings::LaserScanner::kLaserScanner);
+    SlicerType type = static_cast<SlicerType>(GSM->getGlobal()->setting<int>(ES::PrinterConfig::kSlicerType));
+    m_sensor_files_generated = GSM->getGlobal()->setting<bool>(PS::LaserScanner::kLaserScanner);
 
     if (m_ast.isNull())
         this->changeSlicer(type);
@@ -562,15 +561,17 @@ void SessionManager::clearExternalInfo() {
 
 void SessionManager::setupTCPServer() {
     m_tcp_server = new TCPServer();
-    m_step_connectivity = {PM->getStepConnectivity(StatusUpdateStepType::kPreProcess),
-                           PM->getStepConnectivity(StatusUpdateStepType::kCompute),
-                           PM->getStepConnectivity(StatusUpdateStepType::kPostProcess),
-                           PM->getStepConnectivity(StatusUpdateStepType::kGcodeGeneraton),
-                           PM->getStepConnectivity(StatusUpdateStepType::kGcodeParsing)};
 
-    // qDebug() << PM->getStepConnectivity(StatusUpdateStepType::kGcodeGeneraton);
-    if (PM->getTcpServerAutoStart())
-        setServerInformation(PM->getTCPServerPort());
+    m_step_connectivity = {
+        PreferencesManager::getInstance()->getStepConnectivity(StatusUpdateStepType::kPreProcess),
+        PreferencesManager::getInstance()->getStepConnectivity(StatusUpdateStepType::kCompute),
+        PreferencesManager::getInstance()->getStepConnectivity(StatusUpdateStepType::kPostProcess),
+        PreferencesManager::getInstance()->getStepConnectivity(StatusUpdateStepType::kGcodeGeneraton),
+        PreferencesManager::getInstance()->getStepConnectivity(StatusUpdateStepType::kGcodeParsing)};
+
+    if (PreferencesManager::getInstance()->getTcpServerAutoStart()) {
+        setServerInformation(PreferencesManager::getInstance()->getTCPServerPort());
+    }
 }
 void SessionManager::setServerInformation(int port) {
     m_tcp_server->close();

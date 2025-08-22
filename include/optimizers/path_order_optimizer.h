@@ -1,7 +1,4 @@
-//! \author Charles Wade
-
-#ifndef PATHORDEROPTIMIZER_H
-#define PATHORDEROPTIMIZER_H
+#pragma once
 
 #include "configs/settings_base.h"
 #include "geometry/path.h"
@@ -208,5 +205,3 @@ class PathOrderOptimizer {
     bool m_has_computed_heirarchy;
 };
 } // namespace ORNL
-
-#endif // PATHORDEROPTIMIZER_H

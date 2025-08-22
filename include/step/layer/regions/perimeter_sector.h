@@ -1,7 +1,5 @@
-#ifndef PERIMETER_SECTOR_H
-#define PERIMETER_SECTOR_H
+#pragma once
 
-// Local
 #include "geometry/segments/line.h"
 #include "step/layer/regions/region_base.h"
 
@@ -58,5 +56,3 @@ class PerimeterSector : public RegionBase {
     Point m_start_vec;
 };
 } // namespace ORNL
-
-#endif // PERIMETER_SECTOR_H

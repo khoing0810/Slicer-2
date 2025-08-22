@@ -1,10 +1,9 @@
 #include "widgets/settings/setting_row_base.h"
 
+#include "QCheckBox"
+#include "QComboBox"
+#include "QSpinBox"
 #include "managers/preferences_manager.h"
-
-#include <QCheckBox>
-#include <QComboBox>
-#include <QSpinBox>
 
 namespace ORNL {
 

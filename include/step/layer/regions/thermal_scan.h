@@ -1,7 +1,5 @@
-#ifndef THERMALSCAN_H
-#define THERMALSCAN_H
+#pragma once
 
-// Local
 #include "step/layer/regions/region_base.h"
 
 namespace ORNL {
@@ -44,5 +42,3 @@ class ThermalScan : public RegionBase {
     Polyline m_computed_geometry;
 };
 } // namespace ORNL
-
-#endif // THERMALSCAN_H

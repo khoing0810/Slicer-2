@@ -1,7 +1,5 @@
-#ifndef RAFT_H
-#define RAFT_H
+#pragma once
 
-// Local
 #include "step/layer/regions/region_base.h"
 
 namespace ORNL {
@@ -45,5 +43,3 @@ class Raft : public RegionBase {
     QVector<Polyline> m_computed_geometry;
 };
 } // namespace ORNL
-
-#endif // RAFT_H

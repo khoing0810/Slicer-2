@@ -1,4 +1,3 @@
-// Main Module
 #include "geometry/b_spline.h"
 
 #include "utilities/mathutils.h"

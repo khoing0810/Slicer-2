@@ -1,7 +1,4 @@
-#ifndef AML3D_WRITER_H
-#define AML3D_WRITER_H
-
-//! \file aml3d_writer.h
+#pragma once
 
 #include "gcode/gcode_meta.h"
 #include "gcode/writers/writer_base.h"
@@ -112,4 +109,3 @@ class AML3DWriter : public WriterBase {
 
 }; // class AML3DWriter
 } // namespace ORNL
-#endif // AML3D_WRITER_H
